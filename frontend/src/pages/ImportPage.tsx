@@ -50,7 +50,7 @@ export default function ImportPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Import YouTube Playlist</h1>
+        <h1 className="text-2xl font-bold">Import Playlist</h1>
         <p className="text-gray-500 text-sm mt-1">
           Import metadata from YouTube or from an offline manifest file in the mounted volume.
         </p>

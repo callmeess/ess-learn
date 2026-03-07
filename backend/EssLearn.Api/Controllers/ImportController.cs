@@ -10,7 +10,7 @@ namespace EssLearn.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ImportController(AppDbContext db, IYouTubeService youtube, IConfiguration config) : ControllerBase
+public class ImportController(AppDbContext db, IYouTubeService youtube, IConfiguration config, ILogger<ImportController> logger) : ControllerBase
 {
     private readonly string _offlineDataRoot = Path.GetFullPath(config["OfflineData:RootPath"] ?? "/data");
 
@@ -204,8 +204,9 @@ public class ImportController(AppDbContext db, IYouTubeService youtube, IConfigu
         {
             return await youtube.GetVideoMetadataAsync(youtubeIds);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Failed to load YouTube metadata for offline import videos. Falling back to offline metadata.");
             return [];
         }
     }
@@ -227,16 +228,8 @@ public class ImportController(AppDbContext db, IYouTubeService youtube, IConfigu
             path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase))
             return path;
 
-        var normalized = path.Replace('\\', '/');
-        if (Path.IsPathRooted(path))
-        {
-            var absolute = ResolvePathInOfflineRoot(path);
-            normalized = Path.GetRelativePath(_offlineDataRoot, absolute).Replace('\\', '/');
-        }
-        else
-        {
-            ResolvePathInOfflineRoot(path);
-        }
+        var absolute = ResolvePathInOfflineRoot(path);
+        var normalized = Path.GetRelativePath(_offlineDataRoot, absolute).Replace('\\', '/');
 
         return $"/media/{normalized.TrimStart('/')}";
     }
