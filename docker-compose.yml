@@ -26,9 +26,12 @@ services:
       ConnectionStrings__Database: "Host=db;Port=5432;Database=esslearn;Username=esslearn;Password=esslearn"
       ConnectionStrings__Redis: "redis:6379"
       YouTube__ApiKey: "${YOUTUBE_API_KEY}"
+      OfflineData__RootPath: "/data"
     depends_on:
       - db
       - redis
+    volumes:
+      - ./data:/data
 
   frontend:
     build:

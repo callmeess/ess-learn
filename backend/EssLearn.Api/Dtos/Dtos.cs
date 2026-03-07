@@ -22,7 +22,7 @@ public record UpdateProgressDto(int WatchedSeconds, VideoStatus Status);
 public record ProgressDto(int VideoId, VideoStatus Status, int WatchedSeconds, DateTime? LastWatchedAt, DateTime? CompletedAt);
 
 // --- YouTube Import ---
-public record ImportPlaylistDto(string PlaylistUrl, int FieldId);
+public record ImportPlaylistDto(string? PlaylistUrl, int FieldId, string Source = "youtube", string? OfflineManifestPath = null);
 public record ImportResultDto(int PlaylistId, string Title, int VideosImported, string ChannelTitle);
 
 // --- Dashboard ---

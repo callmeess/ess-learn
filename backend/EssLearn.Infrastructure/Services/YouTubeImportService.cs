@@ -105,6 +105,29 @@ public partial class YouTubeImportService : IYouTubeService
         return (playlist, channel, videos);
     }
 
+    public async Task<Dictionary<string, YouTubeVideoMetadata>> GetVideoMetadataAsync(List<string> videoIds)
+    {
+        if (videoIds.Count == 0) return [];
+
+        var req = _youtube.Videos.List("snippet,contentDetails");
+        req.Id = string.Join(",", videoIds.Distinct());
+        var resp = await req.ExecuteAsync();
+
+        return resp.Items
+            .Where(v => v.Id is not null)
+            .ToDictionary(
+                v => v.Id,
+                v => new YouTubeVideoMetadata(
+                    v.Id,
+                    v.Snippet?.Title ?? "Untitled",
+                    v.Snippet?.Description,
+                    v.Snippet?.Thumbnails?.Medium?.Url ?? v.Snippet?.Thumbnails?.Default__?.Url,
+                    (int)XmlConvert.ToTimeSpan(v.ContentDetails.Duration).TotalSeconds,
+                    v.Snippet?.PublishedAtDateTimeOffset?.UtcDateTime
+                )
+            );
+    }
+
     private async Task<Dictionary<string, int>> GetVideoDurationsAsync(List<string> videoIds)
     {
         if (videoIds.Count == 0) return [];

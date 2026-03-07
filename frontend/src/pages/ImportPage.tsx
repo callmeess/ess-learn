@@ -8,6 +8,8 @@ export default function ImportPage() {
   const qc = useQueryClient();
   const { data: fields } = useQuery({ queryKey: ['fields'], queryFn: getFields });
   const [url, setUrl] = useState('');
+  const [source, setSource] = useState<'youtube' | 'offline'>('youtube');
+  const [offlineManifestPath, setOfflineManifestPath] = useState('');
   const [fieldId, setFieldId] = useState<number | ''>('');
   const [newFieldName, setNewFieldName] = useState('');
   const [showNewField, setShowNewField] = useState(false);
@@ -33,8 +35,16 @@ export default function ImportPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim() || !fieldId) return;
-    importMut.mutate({ playlistUrl: url.trim(), fieldId: Number(fieldId) });
+    if (!fieldId) return;
+    if (source === 'youtube' && !url.trim()) return;
+    if (source === 'offline' && !offlineManifestPath.trim()) return;
+
+    importMut.mutate({
+      playlistUrl: source === 'youtube' ? url.trim() : undefined,
+      fieldId: Number(fieldId),
+      source,
+      offlineManifestPath: source === 'offline' ? offlineManifestPath.trim() : undefined,
+    });
   };
 
   return (
@@ -42,21 +52,49 @@ export default function ImportPage() {
       <div>
         <h1 className="text-2xl font-bold">Import YouTube Playlist</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Paste a YouTube playlist URL to import all video metadata. Videos are streamed from YouTube — nothing is downloaded.
+          Import metadata from YouTube or from an offline manifest file in the mounted volume.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">YouTube Playlist URL</label>
-          <input
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder="https://www.youtube.com/playlist?list=PL..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-            required
-          />
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Metadata Source</label>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value as 'youtube' | 'offline')}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+          >
+            <option value="youtube">Online YouTube metadata</option>
+            <option value="offline">Offline manifest from mounted volume</option>
+          </select>
         </div>
+
+        {source === 'youtube' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">YouTube Playlist URL</label>
+            <input
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://www.youtube.com/playlist?list=PL..."
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              required
+            />
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Offline Manifest Path</label>
+            <input
+              value={offlineManifestPath}
+              onChange={e => setOfflineManifestPath(e.target.value)}
+              placeholder="playlists/my-course/manifest.json"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1.5">
+              Path is relative to the API mounted volume root (default <code>/data</code> in Docker).
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">Learning Field</label>
@@ -105,7 +143,7 @@ export default function ImportPage() {
 
         <button
           type="submit"
-          disabled={importMut.isPending || !url.trim() || !fieldId}
+          disabled={importMut.isPending || !fieldId || (source === 'youtube' ? !url.trim() : !offlineManifestPath.trim())}
           className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {importMut.isPending ? (

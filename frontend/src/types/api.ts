@@ -77,8 +77,10 @@ export interface ProgressDto {
 }
 
 export interface ImportPlaylistDto {
-  playlistUrl: string;
+  playlistUrl?: string;
   fieldId: number;
+  source?: 'youtube' | 'offline';
+  offlineManifestPath?: string;
 }
 
 export interface ImportResultDto {

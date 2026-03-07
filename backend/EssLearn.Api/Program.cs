@@ -1,6 +1,7 @@
 using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Services;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,9 +18,14 @@ builder.Services.AddStackExchangeRedisCache(opt =>
 });
 
 // YouTube
-var ytApiKey = builder.Configuration["YouTube:ApiKey"]
-    ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
-builder.Services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
+var ytApiKey = builder.Configuration["YouTube:ApiKey"];
+builder.Services.AddSingleton<IYouTubeService>(
+    string.IsNullOrWhiteSpace(ytApiKey)
+        ? new UnavailableYouTubeService()
+        : new YouTubeImportService(ytApiKey));
+
+// Offline data path (mounted docker volume)
+var offlineDataRoot = builder.Configuration["OfflineData:RootPath"] ?? "/data";
 
 // Controllers + JSON
 builder.Services.AddControllers()
@@ -40,5 +46,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+if (Directory.Exists(offlineDataRoot))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(offlineDataRoot),
+        RequestPath = "/media"
+    });
+}
 app.MapControllers();
 app.Run();
