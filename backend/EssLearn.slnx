@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="EssLearn.Api/EssLearn.Api.csproj" />
+  <Project Path="EssLearn.Core/EssLearn.Core.csproj" />
+  <Project Path="EssLearn.Infrastructure/EssLearn.Infrastructure.csproj" />
+</Solution>

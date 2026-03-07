@@ -1,0 +1,65 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# =========================
+# .NET / Backend
+# =========================
+backend/**/bin/
+backend/**/bin\\*/
+backend/**/obj/
+backend/**/publish/
+backend/**/out/
+
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+*.cache
+*.nupkg
+
+# User & project settings
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+project.lock.json
+**/Properties/launchSettings.json
+
+# NuGet
+**/packages/
+
+# Rider / Visual Studio
+.idea/
+.vs/
+*.DotSettings.user
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# OS & Editor
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
