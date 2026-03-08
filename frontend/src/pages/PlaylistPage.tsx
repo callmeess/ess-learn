@@ -20,7 +20,7 @@ export default function PlaylistPage() {
   const activeVideoId = searchParams.get('v') ? Number(searchParams.get('v')) : null;
   const activeVideo = data?.videos.find(v => v.id === activeVideoId) ?? null;
 
-  const selectVideo = (v: VideoDto) => setSearchParams({ v: String(v.id) });
+  const selectVideo = useCallback((v: VideoDto) => setSearchParams({ v: String(v.id) }), [setSearchParams]);
 
   const progressMut = useMutation({
     mutationFn: (p: { videoId: number; watchedSeconds: number; status: Enums.VideoStatus }) =>
@@ -61,6 +61,7 @@ export default function PlaylistPage() {
         <div className="flex-1">
           {activeVideo ? (
             <VideoPlayer
+              key={activeVideo.id}
               video={activeVideo}
               onProgress={(secs) => progressMut.mutate({ videoId: activeVideo.id, watchedSeconds: secs, status: Enums.VideoStatus.InProgress })}
               onEnded={() => {
