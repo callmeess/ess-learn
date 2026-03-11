@@ -63,6 +63,72 @@ namespace EssLearn.Infrastructure.Migrations
                     b.ToTable("Channels");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.DownloadedVideo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AudioCodec")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Container")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("DownloadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FormatId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Quality")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VideoCodec")
+                        .HasColumnType("text");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("VideoId1")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoId")
+                        .IsUnique();
+
+                    b.HasIndex("VideoId1")
+                        .IsUnique();
+
+                    b.ToTable("DownloadedVideos");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.LearningField", b =>
                 {
                     b.Property<int>("Id")
@@ -246,6 +312,21 @@ namespace EssLearn.Infrastructure.Migrations
                     b.ToTable("VideoProgresses");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.DownloadedVideo", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.Video", "Video")
+                        .WithOne()
+                        .HasForeignKey("EssLearn.Core.Entities.DownloadedVideo", "VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.Video", null)
+                        .WithOne("DownloadedVideo")
+                        .HasForeignKey("EssLearn.Core.Entities.DownloadedVideo", "VideoId1");
+
+                    b.Navigation("Video");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Playlist", b =>
                 {
                     b.HasOne("EssLearn.Core.Entities.Channel", "Channel")
@@ -303,6 +384,8 @@ namespace EssLearn.Infrastructure.Migrations
 
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
+                    b.Navigation("DownloadedVideo");
+
                     b.Navigation("Progress");
                 });
 #pragma warning restore 612, 618

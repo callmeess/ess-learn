@@ -16,6 +16,12 @@ public record PlaylistDetailDto(PlaylistDto Playlist, List<VideoDto> Videos);
 
 // --- Videos ---
 public record VideoDto(int Id, int PlaylistId, string? YoutubeVideoId, string Title, string? ThumbnailUrl, string? Url, int DurationSeconds, int Position, VideoStatus Status, int WatchedSeconds);
+public record VideoDetailDto(int Id, int PlaylistId, string? YoutubeVideoId, string Title, string? ThumbnailUrl, string? Url, int DurationSeconds, int Position, VideoStatus Status, int WatchedSeconds, bool IsDownloaded, DownloadedVideoDto? Download);
+
+// --- Downloads ---
+public record VideoFormatDto(string FormatId, string Quality, string Container, long FileSizeBytes, string FileSizeFormatted, int? Width, int? Height, string? VideoCodec, string? AudioCodec);
+public record DownloadVideoDto(string FormatId, string Quality);
+public record DownloadedVideoDto(int Id, string Quality, string Container, long FileSizeBytes, int? Width, int? Height, DateTime DownloadedAt);
 
 // --- Progress ---
 public record UpdateProgressDto(int WatchedSeconds, VideoStatus Status);

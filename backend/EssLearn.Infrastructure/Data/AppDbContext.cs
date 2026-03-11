@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Playlist> Playlists => Set<Playlist>();
     public DbSet<Video> Videos => Set<Video>();
     public DbSet<VideoProgress> VideoProgresses => Set<VideoProgress>();
+    public DbSet<DownloadedVideo> DownloadedVideos => Set<DownloadedVideo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +56,17 @@ public class AppDbContext : DbContext
             e.HasKey(vp => vp.Id);
             e.HasIndex(vp => vp.VideoId).IsUnique();
             e.HasOne(vp => vp.Video).WithOne(v => v.Progress).HasForeignKey<VideoProgress>(vp => vp.VideoId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DownloadedVideo>(e =>
+        {
+            e.HasKey(dv => dv.Id);
+            e.Property(dv => dv.FilePath).HasMaxLength(1000).IsRequired();
+            e.Property(dv => dv.Quality).HasMaxLength(50).IsRequired();
+            e.Property(dv => dv.FormatId).HasMaxLength(50).IsRequired();
+            e.Property(dv => dv.Container).HasMaxLength(20).IsRequired();
+            e.HasIndex(dv => dv.VideoId).IsUnique();
+            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.VideoId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

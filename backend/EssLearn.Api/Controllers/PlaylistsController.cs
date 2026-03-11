@@ -30,6 +30,7 @@ public class PlaylistsController(AppDbContext db) : ControllerBase
     {
         var playlist = await db.Playlists
             .Include(p => p.Videos.OrderBy(v => v.Position)).ThenInclude(v => v.Progress)
+            .Include(p => p.Videos).ThenInclude(v => v.DownloadedVideo)
             .Include(p => p.Channel)
             .FirstOrDefaultAsync(p => p.Id == id);
 

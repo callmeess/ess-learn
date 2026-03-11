@@ -21,6 +21,9 @@ var ytApiKey = builder.Configuration["YouTube:ApiKey"]
     ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
 builder.Services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
 
+// Video Download
+builder.Services.AddScoped<IVideoDownloadService, VideoDownloadService>();
+
 // Controllers + JSON
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
