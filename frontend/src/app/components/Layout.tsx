@@ -12,7 +12,8 @@ import {
   X,
   BarChart3,
   Calendar,
-  GitBranch
+  GitBranch,
+  BookOpen
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -27,6 +28,7 @@ export function Layout() {
 
   const navItems = [
     { path: "/roadmaps", label: "Roadmaps", icon: GitBranch },
+    { path: "/reading", label: "Reading", icon: BookOpen },
     { path: "/schedule", label: "Schedule", icon: Calendar },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
     { path: "/channels", label: "Channels", icon: Tv },

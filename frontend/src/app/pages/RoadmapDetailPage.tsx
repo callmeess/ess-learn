@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
 import {
   ChevronLeft,
@@ -11,6 +11,8 @@ import {
   Video,
   Edit,
   Trash2,
+  BookOpen,
+  Book,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -41,11 +43,13 @@ interface CourseNode {
   title: string;
   description: string;
   duration: string;
-  videoCount: number;
+  videoCount?: number;
+  itemCount?: number;
   status: "completed" | "in-progress" | "locked" | "available";
   prerequisites: string[];
   position: { x: number; y: number };
   level: number;
+  nodeType: "course" | "reading-list";
 }
 
 // Mock roadmap data
@@ -66,6 +70,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: [],
         position: { x: 300, y: 50 },
         level: 0,
+        nodeType: "course",
       },
       {
         id: "n2",
@@ -77,6 +82,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n1"],
         position: { x: 100, y: 250 },
         level: 1,
+        nodeType: "course",
       },
       {
         id: "n3",
@@ -88,6 +94,19 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n1"],
         position: { x: 500, y: 250 },
         level: 1,
+        nodeType: "course",
+      },
+      {
+        id: "r1",
+        title: "JavaScript Reading List",
+        description: "Essential books and articles",
+        duration: "25h",
+        itemCount: 4,
+        status: "in-progress",
+        prerequisites: ["n2"],
+        position: { x: 260, y: 350 },
+        level: 1.5,
+        nodeType: "reading-list",
       },
       {
         id: "n4",
@@ -99,6 +118,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n2"],
         position: { x: 50, y: 450 },
         level: 2,
+        nodeType: "course",
       },
       {
         id: "n5",
@@ -110,6 +130,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n2"],
         position: { x: 330, y: 450 },
         level: 2,
+        nodeType: "course",
       },
       {
         id: "n6",
@@ -121,6 +142,19 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n2"],
         position: { x: 610, y: 450 },
         level: 2,
+        nodeType: "course",
+      },
+      {
+        id: "r2",
+        title: "React Deep Dive",
+        description: "React books and articles",
+        duration: "12h",
+        itemCount: 3,
+        status: "available",
+        prerequisites: ["n4"],
+        position: { x: 50, y: 570 },
+        level: 2.5,
+        nodeType: "reading-list",
       },
       {
         id: "n7",
@@ -132,6 +166,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n5", "n6"],
         position: { x: 470, y: 650 },
         level: 3,
+        nodeType: "course",
       },
       {
         id: "n8",
@@ -143,6 +178,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n7"],
         position: { x: 470, y: 850 },
         level: 4,
+        nodeType: "course",
       },
       {
         id: "n9",
@@ -151,9 +187,10 @@ const mockRoadmapData: Record<string, any> = {
         duration: "15h",
         videoCount: 9,
         status: "locked",
-        prerequisites: ["n4"],
-        position: { x: 50, y: 650 },
+        prerequisites: ["n4", "r2"],
+        position: { x: 50, y: 750 },
         level: 3,
+        nodeType: "course",
       },
       {
         id: "n10",
@@ -165,6 +202,19 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n8", "n9"],
         position: { x: 260, y: 1050 },
         level: 5,
+        nodeType: "course",
+      },
+      {
+        id: "r3",
+        title: "System Design Reading",
+        description: "Architectural patterns",
+        duration: "30h",
+        itemCount: 3,
+        status: "locked",
+        prerequisites: ["n10"],
+        position: { x: 480, y: 1050 },
+        level: 5,
+        nodeType: "reading-list",
       },
       {
         id: "n11",
@@ -176,6 +226,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n10"],
         position: { x: 120, y: 1250 },
         level: 6,
+        nodeType: "course",
       },
       {
         id: "n12",
@@ -187,6 +238,7 @@ const mockRoadmapData: Record<string, any> = {
         prerequisites: ["n10"],
         position: { x: 400, y: 1250 },
         level: 6,
+        nodeType: "course",
       },
     ],
   },
@@ -276,17 +328,82 @@ export function RoadmapDetailPage() {
   const totalCount = nodes.length;
   const progress = (completedCount / totalCount) * 100;
 
-  // Calculate connections between nodes
-  const connections = nodes.flatMap((node) =>
-    node.prerequisites.map((prereqId) => {
-      const prereqNode = nodes.find((n) => n.id === prereqId);
-      if (!prereqNode) return null;
-      return {
-        from: prereqNode,
-        to: node,
-      };
-    })
-  ).filter(Boolean);
+  // Compute a simple, ordered layout to avoid collisions by grouping nodes by level
+  const positionedNodes = useMemo(() => {
+    const levelMap = new Map<number, CourseNode[]>();
+    nodes.forEach((n) => {
+      const lvl = n.level ?? 0;
+      const arr = levelMap.get(lvl) || [];
+      arr.push(n);
+      levelMap.set(lvl, arr);
+    });
+
+    const sortedLevels = Array.from(levelMap.keys()).sort((a, b) => a - b);
+    const nodeWidth = 220; // matches w-[200px] plus padding
+    const gapX = 32;
+    const startX = 40;
+    const verticalGap = 220;
+
+    const positioned: CourseNode[] = [];
+    sortedLevels.forEach((lvl, levelIndex) => {
+      const items = levelMap.get(lvl) || [];
+      items.forEach((item, idx) => {
+        const left = startX + idx * (nodeWidth + gapX);
+        const top = 50 + levelIndex * verticalGap;
+        positioned.push({ ...item, position: { x: left, y: top } });
+      });
+    });
+
+    // For any nodes whose level wasn't in the map (shouldn't happen), fall back
+    const positionedIds = new Set(positioned.map((n) => n.id));
+    nodes.forEach((n) => {
+      if (!positionedIds.has(n.id)) positioned.push(n);
+    });
+
+    return positioned;
+  }, [nodes]);
+
+  // Calculate connections between positioned nodes
+  const connections = positionedNodes
+    .flatMap((node) =>
+      node.prerequisites.map((prereqId) => {
+        const prereqNode = positionedNodes.find((n) => n.id === prereqId);
+        if (!prereqNode) return null;
+        return {
+          from: prereqNode,
+          to: node,
+        };
+      })
+    )
+    .filter(Boolean);
+
+  // Delete node handler: remove node and update prerequisites and statuses
+  const handleDeleteNode = (nodeId: string) => {
+    const toDelete = nodes.find((n) => n.id === nodeId);
+    if (!toDelete) return;
+
+    setNodes((prev) => {
+      // remove the node and strip it from prerequisites
+      const remaining = prev
+        .filter((n) => n.id !== nodeId)
+        .map((n) => ({ ...n, prerequisites: n.prerequisites.filter((p) => p !== nodeId) }));
+
+      // Recompute statuses conservatively: keep completed/in-progress as-is, otherwise
+      // mark available if no prereqs or all prereqs completed, else locked
+      const updated = remaining.map((n) => {
+        if (n.status === "completed" || n.status === "in-progress") return n;
+        if (n.prerequisites.length === 0) return { ...n, status: "available" as const };
+        const allCompleted = n.prerequisites.every((pid) => remaining.find((r) => r.id === pid && r.status === "completed"));
+        return allCompleted ? { ...n, status: "available" as const } : { ...n, status: "locked" as const };
+      });
+
+      return updated;
+    });
+
+    // Close any open detail for the deleted node
+    if (selectedNode?.id === nodeId) setSelectedNode(null);
+    toast.success("Node removed from roadmap");
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -360,7 +477,7 @@ export function RoadmapDetailPage() {
 
             {/* Course Nodes */}
             <div className="relative" style={{ minHeight: "1450px" }}>
-              {nodes.map((node) => (
+              {positionedNodes.map((node) => (
                 <div
                   key={node.id}
                   className={cn(
@@ -376,6 +493,16 @@ export function RoadmapDetailPage() {
                     node.status !== "locked" && handleNodeClick(node)
                   }
                 >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNode(node.id);
+                    }}
+                    className="absolute top-2 right-2 p-1 rounded text-gray-500 hover:text-red-600 hover:bg-gray-100"
+                    aria-label="Delete node"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <div className="flex items-start gap-2 mb-2">
                     {getNodeIcon(node.status)}
                     <div className="flex-1 min-w-0">
@@ -391,8 +518,17 @@ export function RoadmapDetailPage() {
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-1">
-                      <Video className="w-3 h-3" />
-                      <span>{node.videoCount}</span>
+                      {node.nodeType === "reading-list" ? (
+                        <>
+                          <BookOpen className="w-3 h-3" />
+                          <span>{node.itemCount} items</span>
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-3 h-3" />
+                          <span>{node.videoCount}</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -460,10 +596,30 @@ export function RoadmapDetailPage() {
                   <p className="font-medium text-gray-900">{selectedNode.duration}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">Videos</p>
-                  <p className="font-medium text-gray-900">
-                    {selectedNode.videoCount} videos
+                  <p className="text-gray-500 mb-1">
+                    {selectedNode.nodeType === "reading-list" ? "Items" : "Videos"}
                   </p>
+                  <p className="font-medium text-gray-900">
+                    {selectedNode.nodeType === "reading-list"
+                      ? `${selectedNode.itemCount} items`
+                      : `${selectedNode.videoCount} videos`}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-gray-500 mb-1">Type</p>
+                  <Badge variant="outline">
+                    {selectedNode.nodeType === "reading-list" ? (
+                      <>
+                        <BookOpen className="w-3 h-3 mr-1" />
+                        Reading List
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-3 h-3 mr-1" />
+                        Course
+                      </>
+                    )}
+                  </Badge>
                 </div>
                 <div className="col-span-2">
                   <p className="text-gray-500 mb-1">Status</p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -16,6 +16,8 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const [url, setUrl] = useState("");
   const [type, setType] = useState<"video" | "playlist" | "channel">("video");
   const [isImporting, setIsImporting] = useState(false);
+  const [fields, setFields] = useState<Array<{ id: number; name: string }>>([]);
+  const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
 
   const handleImport = async () => {
     if (!url.trim()) {
@@ -26,17 +28,33 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     setIsImporting(true);
 
     try {
-      // Mock API call - replace with actual API endpoint
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (type === "playlist") {
+        if (!selectedFieldId) {
+          toast.error("Please select a learning field before importing a playlist.");
+          return;
+        }
 
-      // Simulate API call: POST /api/import/youtube
-      const response = await fetch("/api/import/youtube", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, type }),
-      }).catch(() => null);
+        const response = await fetch("/api/import/playlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playlistUrl: url, fieldId: selectedFieldId }),
+        }).catch(() => null);
 
-      // For demo purposes, show success
+        if (!response) throw new Error("No response");
+        if (!response.ok) {
+          const err = await response.json().catch(() => null);
+          toast.error(err?.message || "Import failed.");
+          return;
+        }
+
+        toast.success("Playlist imported successfully!");
+        setUrl("");
+        onOpenChange(false);
+        return;
+      }
+
+      // Fallback/mock for other types (video/channel) until endpoints are added
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} imported successfully!`);
       setUrl("");
       onOpenChange(false);
@@ -46,6 +64,26 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
       setIsImporting(false);
     }
   };
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/fields");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setFields(data.map((f: any) => ({ id: f.id, name: f.name })));
+        if (data.length > 0) setSelectedFieldId(data[0].id);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,6 +96,23 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {fields.length > 0 && (
+            <div className="space-y-2">
+              <Label>Learning Field</Label>
+              <select
+                className="w-full rounded border px-2 py-1"
+                value={selectedFieldId ?? ""}
+                onChange={(e) => setSelectedFieldId(Number(e.target.value))}
+                disabled={isImporting}
+              >
+                {fields.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="url">YouTube URL</Label>
             <Input

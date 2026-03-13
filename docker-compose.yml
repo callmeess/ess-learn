@@ -28,7 +28,7 @@ services:
       YouTube__ApiKey: "${YOUTUBE_API_KEY}"
       VideoStorage__DownloadPath: "/app/downloads"
     volumes:
-      - video_downloads:/app/downloads
+      - ./downloads:/app/downloads
     depends_on:
       - db
       - redis
@@ -43,10 +43,12 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html
     environment:
-      VITE_API_URL: "http://api:8080"
+      VITE_API_URL: "http://localhost:5083"
     depends_on:
-      - api
+      - db
+      - redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   pgdata:
-  video_downloads:

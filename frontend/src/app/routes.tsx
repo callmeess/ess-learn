@@ -10,6 +10,8 @@ import { SchedulePage } from "./pages/SchedulePage";
 import { RoadmapsPage } from "./pages/RoadmapsPage";
 import { RoadmapDetailPage } from "./pages/RoadmapDetailPage";
 import { VideoDetailPage } from "./pages/VideoDetailPage";
+import { ReadingPage } from "./pages/ReadingPage";
+import { ReadingDetailPage } from "./pages/ReadingDetailPage";
 import { AccountPage } from "./pages/AccountPage";
 import { NotFound } from "./pages/NotFound";
 
@@ -53,6 +55,14 @@ export const router = createBrowserRouter([
       { 
         path: "videos/:id", 
         element: React.createElement(VideoDetailPage)
+      },
+      { 
+        path: "reading", 
+        element: React.createElement(ReadingPage)
+      },
+      { 
+        path: "reading/:id", 
+        element: React.createElement(ReadingDetailPage)
       },
       { 
         path: "account", 
