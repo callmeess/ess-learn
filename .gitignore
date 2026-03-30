@@ -3,6 +3,33 @@
 .env.*
 !.env.example
 
+# Sensitive files - do NOT commit secrets, keys, or credentials
+# dotenv and local env files
+.env.local
+.env.*.local
+.envrc
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.asc
+*.secret
+secrets.*
+.netrc
+.npmrc
+.yarnrc
+
+# Cloud and SDK credentials
+.aws/
+.azure/
+.gcloud/
+
+# Ignore environment-specific .NET settings but keep base appsettings.json
+backend/**/appsettings.*.json
+!backend/**/appsettings.json
+
 # =========================
 # .NET / Backend
 # =========================

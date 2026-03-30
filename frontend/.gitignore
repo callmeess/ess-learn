@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Sensitive files - do not commit
+.env
+.env.*
+.env.local
+.env.*.local
+.envrc
+.npmrc
+.yarnrc
+*.pem
+*.key
+.netrc
+.aws/
+.azure/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
