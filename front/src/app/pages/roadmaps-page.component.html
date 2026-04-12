@@ -1,0 +1,117 @@
+<section class="page">
+  <div class="heading-row">
+    <div>
+      <h2>Learning Roadmaps</h2>
+      <p>Visual learning paths with prerequisites and parallel courses</p>
+    </div>
+    <button type="button" class="primary" (click)="openCreateModal()">Create Roadmap</button>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card s-blue">
+      <p class="stat-value">{{ totalRoadmaps }}</p>
+      <p class="stat-label">Total Roadmaps</p>
+    </article>
+    <article class="stat-card s-orange">
+      <p class="stat-value">{{ inProgressCount }}</p>
+      <p class="stat-label">In Progress</p>
+    </article>
+    <article class="stat-card s-green">
+      <p class="stat-value">{{ completedCount }}</p>
+      <p class="stat-label">Completed</p>
+    </article>
+    <article class="stat-card s-purple">
+      <p class="stat-value">{{ totalHours }}h</p>
+      <p class="stat-label">Total Hours</p>
+    </article>
+  </div>
+
+  <div class="toolbar">
+    <input
+      class="search-box"
+      type="text"
+      [(ngModel)]="currentSearch"
+      placeholder="Search roadmaps, tags..."
+    />
+
+    <select class="filter-select" [(ngModel)]="currentFilter">
+      <option *ngFor="let category of categories" [value]="category">
+        {{ category === 'all' ? 'All Categories' : category }}
+      </option>
+    </select>
+  </div>
+
+  <div class="grid">
+    <article class="card" *ngFor="let roadmap of filteredRoadmaps">
+      <div class="bar" [style.background]="roadmap.color"></div>
+      <div class="content">
+        <div class="top">
+          <span class="icon">{{ roadmap.icon }}</span>
+          <span class="badge">{{ roadmap.category }}</span>
+        </div>
+        <a [routerLink]="['/roadmaps', roadmap.id]" class="title">{{ roadmap.title }}</a>
+        <p class="desc">{{ roadmap.description }}</p>
+
+        <p class="muted">{{ roadmap.totalCourses }} courses • {{ roadmap.estimatedHours }}h</p>
+
+        <div class="tag-row">
+          <span class="tag" *ngFor="let tag of roadmap.tags">{{ tag }}</span>
+        </div>
+
+        <div class="progress-head">
+          <span>Progress</span>
+          <span>{{ roadmap.completedCourses }}/{{ roadmap.totalCourses }} · {{ progress(roadmap) }}%</span>
+        </div>
+        <div class="track">
+          <div class="fill" [style.width.%]="progress(roadmap)" [style.background]="roadmap.color"></div>
+        </div>
+
+        <a [routerLink]="['/roadmaps', roadmap.id]" class="continue-btn">
+          {{ progress(roadmap) === 100 ? 'Completed' : 'Continue Learning' }}
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <article class="empty-state" *ngIf="filteredRoadmaps.length === 0">
+    <p class="empty-title">No roadmaps found</p>
+    <p class="empty-sub">Try a different search term or category filter.</p>
+  </article>
+</section>
+
+<div class="modal-overlay" *ngIf="createModalOpen" (click)="closeCreateModal()">
+  <article class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Create Roadmap</h3>
+      <button type="button" class="close-btn" (click)="closeCreateModal()">✕</button>
+    </div>
+    <p class="modal-sub">Define your new learning path</p>
+
+    <label class="field-label">Roadmap Title</label>
+    <input class="field-input" [(ngModel)]="newRoadmap.title" placeholder="e.g., Machine Learning Mastery" />
+
+    <label class="field-label">Category</label>
+    <input class="field-input" [(ngModel)]="newRoadmap.category" placeholder="e.g., Data Science" />
+
+    <label class="field-label">Description</label>
+    <textarea class="field-input text-area" [(ngModel)]="newRoadmap.description" placeholder="Brief description..."></textarea>
+
+    <div class="row-two">
+      <div>
+        <label class="field-label">Icon</label>
+        <input class="field-input" [(ngModel)]="newRoadmap.icon" maxlength="2" placeholder="🚀" />
+      </div>
+      <div>
+        <label class="field-label">Color</label>
+        <input class="field-input color-input" type="color" [(ngModel)]="newRoadmap.color" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="closeCreateModal()">Cancel</button>
+      <button type="button" class="primary" (click)="createRoadmap()">Create Roadmap</button>
+    </div>
+  </article>
+</div>
+
+<div class="toast" [class.show]="toastMessage">{{ toastMessage }}</div>

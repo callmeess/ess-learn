@@ -1,0 +1,28 @@
+<section class="page">
+  <h2>Account Settings</h2>
+  <p class="muted">Manage your profile, preferences, and account settings</p>
+
+  <article class="card">
+    <h3>Profile</h3>
+    <label>Name</label>
+    <input type="text" [(ngModel)]="profile.name" />
+    <label>Email</label>
+    <input type="email" [(ngModel)]="profile.email" />
+  </article>
+
+  <article class="card">
+    <h3>Preferences</h3>
+    <label><input type="checkbox" [(ngModel)]="preferences.emailNotifications" /> Email Notifications</label>
+    <label><input type="checkbox" [(ngModel)]="preferences.downloadNotifications" /> Download Notifications</label>
+    <label><input type="checkbox" [(ngModel)]="preferences.weeklyDigest" /> Weekly Digest</label>
+    <label><input type="checkbox" [(ngModel)]="preferences.autoDownload" /> Auto Download</label>
+    <label>Default Quality</label>
+    <select [(ngModel)]="profile.defaultQuality">
+      <option value="2160p">4K (2160p)</option>
+      <option value="1440p">2K (1440p)</option>
+      <option value="1080p">Full HD (1080p)</option>
+      <option value="720p">HD (720p)</option>
+      <option value="480p">SD (480p)</option>
+    </select>
+  </article>
+</section>

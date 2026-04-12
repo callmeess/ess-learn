@@ -1,0 +1,13 @@
+.page { padding: 1.25rem; max-width: 84rem; margin: 0 auto; }
+.heading-row { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+h2 { margin: 0; font-size: 1.8rem; }
+.heading-row p { margin: 0.4rem 0 0; color: var(--text-muted); }
+select { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.55rem 0.75rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 0.85rem; margin: 1.2rem 0; }
+.card, .table-card { border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); padding: 1rem; }
+.num { margin: 0; font-size: 1.7rem; font-weight: 700; }
+.lbl { margin: 0.25rem 0 0; color: var(--text-muted); }
+.table-card h3 { margin: 0 0 0.8rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.55rem; border-bottom: 1px solid #edf2f7; }
+@media (min-width: 860px) { .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

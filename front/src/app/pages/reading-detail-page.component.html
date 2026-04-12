@@ -1,0 +1,14 @@
+<section class="page">
+  <a routerLink="/reading" class="back">Back to Reading Lists</a>
+  <h2>Reading List Detail #{{ listId }}</h2>
+
+  <div class="list">
+    <article class="item" *ngFor="let item of items">
+      <div>
+        <p class="title">{{ item.title }}</p>
+        <p class="muted">{{ item.author }}</p>
+      </div>
+      <span [class]="'status ' + item.status">{{ item.status }}</span>
+    </article>
+  </div>
+</section>

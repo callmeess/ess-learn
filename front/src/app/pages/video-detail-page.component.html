@@ -1,0 +1,106 @@
+<section class="page">
+  <a routerLink="/" class="back-btn">Back to Videos</a>
+
+  <p *ngIf="isLoading">Loading video...</p>
+  <p *ngIf="!isLoading && errorMessage">{{ errorMessage }}</p>
+
+  <div class="detail-layout" *ngIf="!isLoading && !errorMessage && video">
+    <div>
+      <div class="player-wrap" [style.background]="'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'" (click)="togglePlay()">
+        <div class="player-emoji">{{ video.thumbEmoji }}</div>
+        <div class="player-overlay">
+          <div class="player-play" [class.playing]="isPlaying">{{ isPlaying ? '❚❚' : '▶' }}</div>
+        </div>
+        <div class="player-timestamp">{{ video.duration }}</div>
+      </div>
+
+      <div class="vid-info">
+        <h2 class="vid-info-title">{{ video.fullTitle }}</h2>
+        <div class="vid-info-meta">
+          <span>{{ video.views }}</span>
+          <span>{{ video.date }}</span>
+          <span>{{ video.duration }}</span>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-info">
+            <div class="channel-avatar">{{ video.channelInitial }}</div>
+            <div>
+              <div class="channel-name">{{ video.channel }}</div>
+              <div class="channel-type">{{ video.channelType }}</div>
+            </div>
+          </div>
+
+          <button type="button" class="btn-share">Share</button>
+        </div>
+
+        <div class="playlist-badge">
+          <span class="playlist-label">Playlist</span>
+          <span class="playlist-name">{{ video.playlist }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <article class="panel-card">
+        <div class="panel-head">Download Options</div>
+        <div class="panel-body">
+          <div class="quality-label">Select Quality and Format</div>
+
+          <select class="quality-select" [value]="selectedFormat" (change)="setSelectedFormat($any($event.target).value)">
+            <option *ngFor="let format of formats" [value]="format.id">{{ format.label }}</option>
+          </select>
+
+          <table class="specs-table">
+            <tr>
+              <td>Quality:</td>
+              <td>{{ selectedFormatSpec.quality }}</td>
+            </tr>
+            <tr>
+              <td>Format:</td>
+              <td>{{ selectedFormatSpec.format }}</td>
+            </tr>
+            <tr>
+              <td>FPS:</td>
+              <td>{{ selectedFormatSpec.fps }}</td>
+            </tr>
+            <tr>
+              <td>File Size:</td>
+              <td>{{ selectedFormatSpec.size }}</td>
+            </tr>
+          </table>
+
+          <button type="button" class="btn-download" [disabled]="isDownloading" (click)="downloadVideo()">
+            {{ isDownloading ? 'Downloading...' : 'Download Video' }}
+          </button>
+        </div>
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-head">Video Stats</div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span class="stat-row-label">Duration:</span>
+            <span class="stat-row-value">{{ video.duration }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-row-label">Views:</span>
+            <span class="stat-row-value">{{ video.viewsShort }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-row-label">Upload Date:</span>
+            <span class="stat-row-value">{{ video.date }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-row-label">Status:</span>
+            <span class="status-pill" [class.not-downloaded]="video.status === 'not-downloaded'" [class.in-progress]="video.status === 'in-progress'" [class.downloaded]="video.status === 'downloaded'" [class.completed]="video.status === 'completed'">
+              {{ video.statusLabel }}
+            </span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="toast" [class.show]="toastVisible">{{ toastMessage }}</div>

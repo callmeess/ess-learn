@@ -1,0 +1,8 @@
+.page { padding: 1.25rem; max-width: 72rem; margin: 0 auto; }
+h2 { margin: 0; font-size: 1.8rem; }
+.muted { color: var(--text-muted); margin-top: 0.45rem; }
+.card { margin-top: 1rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); padding: 1rem; display: grid; gap: 0.55rem; }
+h3 { margin: 0 0 0.3rem; }
+label { font-size: 0.9rem; color: #334155; display: block; }
+input[type='text'], input[type='email'], select { width: 100%; border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.55rem 0.75rem; }
+input[type='checkbox'] { margin-right: 0.45rem; }

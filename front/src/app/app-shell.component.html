@@ -1,0 +1,66 @@
+<div class="shell">
+  <aside class="sidebar desktop-only">
+    <div class="brand">
+      <h1>EssLearn</h1>
+      <p>Video Manager</p>
+    </div>
+
+    <nav class="nav-links">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+      >
+        {{ item.label }}
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a routerLink="/account" routerLinkActive="active">Account</a>
+    </div>
+  </aside>
+
+  <div class="mobile-menu-backdrop" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  <aside class="sidebar mobile-only" *ngIf="isMobileMenuOpen">
+    <div class="brand mobile-brand">
+      <h1>EssLearn</h1>
+      <button type="button" class="ghost-button" (click)="closeMobileMenu()">Close</button>
+    </div>
+    <nav class="nav-links">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+        (click)="closeMobileMenu()"
+      >
+        {{ item.label }}
+      </a>
+      <a routerLink="/account" routerLinkActive="active" (click)="closeMobileMenu()">Account</a>
+    </nav>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <button type="button" class="ghost-button show-mobile" (click)="isMobileMenuOpen = true">Menu</button>
+
+      <div class="topbar-tools">
+        <div class="search-wrap">
+          <input
+            type="text"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchChange($event)"
+            placeholder="Search videos, playlists, channels..."
+          />
+        </div>
+
+        <button type="button" class="primary-button">Import</button>
+      </div>
+    </header>
+
+    <main class="page-container">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

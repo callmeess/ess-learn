@@ -44,6 +44,22 @@ dist/
 dist-ssr/
 *.local
 
+# Angular specific (front/)
+front/node_modules/
+front/dist/
+front/.angular/
+front/.env
+front/.env.*
+front/out-tsc/
+front/.vscode/
+front/.DS_Store
+front/npm-debug.log*
+front/yarn-debug.log*
+front/yarn-error.log*
+front/pnpm-debug.log*
+front/package-lock.json
+front/.idea/
+
 # Logs
 logs/
 *.log

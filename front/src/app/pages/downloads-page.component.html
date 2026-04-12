@@ -1,0 +1,71 @@
+<section class="downloads-page">
+  <div class="section-header">
+    <h2>Downloads</h2>
+    <p>Manage your video downloads and queue</p>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <p class="value">{{ activeCount }}</p>
+      <p class="label">Active</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ completedDownloads.length }}</p>
+      <p class="label">Completed</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ pausedCount }}</p>
+      <p class="label">Paused</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ failedCount }}</p>
+      <p class="label">Failed</p>
+    </article>
+  </div>
+
+  <div class="tabs">
+    <button type="button" [class.active]="tab === 'active'" (click)="tab = 'active'">
+      Active ({{ activeDownloads.length }})
+    </button>
+    <button type="button" [class.active]="tab === 'completed'" (click)="tab = 'completed'">
+      Completed ({{ completedDownloads.length }})
+    </button>
+  </div>
+
+  <div class="list" *ngIf="tab === 'active'">
+    <article class="download-card" *ngFor="let item of activeDownloads">
+      <div class="row-top">
+        <div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.channel }}</p>
+        </div>
+        <span [class]="statusClass(item.status)">{{ item.status }}</span>
+      </div>
+
+      <div class="progress-wrap" *ngIf="item.status !== 'queued'">
+        <div class="track">
+          <div class="fill" [style.width.%]="item.progress"></div>
+        </div>
+        <div class="progress-meta">
+          <span>{{ item.size }} / {{ item.totalSize }}</span>
+          <span>{{ item.progress }}%</span>
+        </div>
+      </div>
+
+      <p class="meta">Speed: {{ item.speed }} | ETA: {{ item.eta }}</p>
+    </article>
+  </div>
+
+  <div class="list" *ngIf="tab === 'completed'">
+    <article class="download-card" *ngFor="let item of completedDownloads">
+      <div class="row-top">
+        <div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.channel }}</p>
+        </div>
+        <span [class]="statusClass(item.status)">{{ item.status }}</span>
+      </div>
+      <p class="meta">{{ item.totalSize }} downloaded</p>
+    </article>
+  </div>
+</section>
