@@ -1,17 +1,17 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AppShellComponent } from './app-shell.component';
-import { VideosPageComponent } from './pages/videos-page.component';
-import { PlaylistsPageComponent } from './pages/playlists-page.component';
-import { ChannelsPageComponent } from './pages/channels-page.component';
-import { DownloadsPageComponent } from './pages/downloads-page.component';
-import { AnalyticsPageComponent } from './pages/analytics-page.component';
-import { SchedulePageComponent } from './pages/schedule-page.component';
-import { RoadmapsPageComponent } from './pages/roadmaps-page.component';
-import { RoadmapDetailPageComponent } from './pages/roadmap-detail-page.component';
-import { VideoDetailPageComponent } from './pages/video-detail-page.component';
-import { AccountPageComponent } from './pages/account-page.component';
-import { NotFoundPageComponent } from './pages/not-found-page.component';
+import { VideosPageComponent } from './pages/videos/videos-page.component';
+import { PlaylistsPageComponent } from './pages/playlist/playlists-page.component';
+import { ChannelsPageComponent } from './pages/channels/channels-page.component';
+import { DownloadsPageComponent } from './pages/downloads/downloads-page.component';
+import { AnalyticsPageComponent } from './pages/analytics/analytics-page.component';
+import { SchedulePageComponent } from './pages/schedule/schedule-page.component';
+import { RoadmapsPageComponent } from './pages/roadmap/roadmaps-page.component';
+import { RoadmapDetailPageComponent } from './pages/roadmap-details/roadmap-detail-page.component';
+import { VideoDetailPageComponent } from './pages/video-details/video-detail-page.component';
+import { AccountPageComponent } from './pages/account/account-page.component';
+import { NotFoundPageComponent } from './pages/not-found/not-found-page.component';
 
 const routes: Routes = [
   {

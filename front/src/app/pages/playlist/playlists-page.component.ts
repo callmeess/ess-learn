@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { ApiService } from '../core/api.service';
-import { PlaylistDto } from '../core/api.models';
+import { ApiService } from '../../core/api.service';
+import { PlaylistDto } from '../../core/api.models';
 
 interface Playlist {
   id: number;

@@ -59,6 +59,7 @@ front/yarn-error.log*
 front/pnpm-debug.log*
 front/package-lock.json
 front/.idea/
+front/.angular/cache/
 
 # Logs
 logs/

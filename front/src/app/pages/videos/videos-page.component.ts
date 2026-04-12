@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { SearchStateService } from '../search-state.service';
-import { ApiService } from '../core/api.service';
-import { VideoListItemDto, VideoStatus } from '../core/api.models';
+import { SearchStateService } from '../../search-state.service';
+import { ApiService } from '../../core/api.service';
+import { VideoListItemDto, VideoStatus } from '../../core/api.models';
 
 interface Video {
   id: number;

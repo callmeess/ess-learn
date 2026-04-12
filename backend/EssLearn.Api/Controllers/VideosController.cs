@@ -11,6 +11,45 @@ namespace EssLearn.Api.Controllers;
 [Route("api/[controller]")]
 public class VideosController(AppDbContext db) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<List<VideoListItemDto>>> GetAll([FromQuery] int? playlistId, [FromQuery] int? fieldId)
+    {
+        var query = db.Videos
+            .Include(v => v.Progress)
+            .Include(v => v.DownloadedVideo)
+            .Include(v => v.Playlist).ThenInclude(p => p.Channel)
+            .AsQueryable();
+
+        if (playlistId.HasValue)
+            query = query.Where(v => v.PlaylistId == playlistId.Value);
+
+        if (fieldId.HasValue)
+            query = query.Where(v => v.Playlist.FieldId == fieldId.Value);
+
+        var videos = await query
+            .OrderByDescending(v => v.PublishedAt ?? v.CreatedAt)
+            .ThenBy(v => v.Position)
+            .ToListAsync();
+
+        return videos.Select(v => new VideoListItemDto(
+            v.Id,
+            v.PlaylistId,
+            v.Playlist.FieldId,
+            v.Title,
+            v.ThumbnailUrl,
+            v.Url,
+            v.DurationSeconds,
+            v.Position,
+            v.Progress?.Status ?? VideoStatus.NotStarted,
+            v.Progress?.WatchedSeconds ?? 0,
+            v.Playlist.Title,
+            v.Playlist.Channel?.Title,
+            v.DownloadedVideo is not null,
+            v.PublishedAt,
+            v.CreatedAt
+        )).ToList();
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<VideoDto>> Get(int id)
     {

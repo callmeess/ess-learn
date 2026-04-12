@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ApiService } from '../core/api.service';
-import { DownloadStatusDto, VideoFormatDto, VideoStatus } from '../core/api.models';
+import { ApiService } from '../../core/api.service';
+import { DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../core/api.models';
 
 interface VideoFormat {
   id: string;
