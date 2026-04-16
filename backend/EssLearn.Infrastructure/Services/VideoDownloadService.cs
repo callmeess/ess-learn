@@ -15,7 +15,7 @@ public class VideoDownloadService : IVideoDownloadService
     {
         _downloadPath = configuration["VideoStorage:DownloadPath"] ?? "/app/downloads";
         _logger = logger;
-        
+
         // Ensure download directory exists
         Directory.CreateDirectory(_downloadPath);
     }
@@ -56,7 +56,7 @@ public class VideoDownloadService : IVideoDownloadService
         {
             var outputDir = Path.Combine(_downloadPath, youtubeVideoId);
             Directory.CreateDirectory(outputDir);
-            
+
             var outputTemplate = Path.Combine(outputDir, $"{quality}.%(ext)s");
             var url = $"https://www.youtube.com/watch?v={youtubeVideoId}";
             var args = $"-f {formatId} -o \"{outputTemplate}\" \"{url}\"";
@@ -76,9 +76,9 @@ public class VideoDownloadService : IVideoDownloadService
 
             var filePath = files[0];
             var fileInfo = new FileInfo(filePath);
-            
+
             _logger.LogInformation("Successfully downloaded video to {FilePath}", filePath);
-            
+
             return new DownloadResult(true, filePath, fileInfo.Length, null);
         }
         catch (Exception ex)

@@ -1,0 +1,75 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="close()">
+	<article class="modal" (click)="$event.stopPropagation()">
+		<div class="modal-header">
+			<h3>Add Learning Node</h3>
+			<button type="button" class="close-btn" (click)="close()">✕</button>
+		</div>
+
+		<p class="modal-sub">Create a course or reading and connect it with prerequisite/following nodes.</p>
+
+		<form class="add-grid" [formGroup]="addForm">
+			<label>
+				<span class="meta-label">Node Title</span>
+				<input formControlName="title" type="text" placeholder="e.g. Angular Components" />
+				<small class="field-error" *ngIf="showError('title')">Title is required.</small>
+			</label>
+
+			<label>
+				<span class="meta-label">Duration</span>
+				<input formControlName="duration" type="text" placeholder="e.g. 6h" />
+				<small class="field-error" *ngIf="showError('duration')">Duration is required.</small>
+			</label>
+
+			<label class="full-width">
+				<span class="meta-label">Description</span>
+				<textarea formControlName="description" rows="2" placeholder="Short description"></textarea>
+			</label>
+
+			<label>
+				<span class="meta-label">Resources Count</span>
+				<input formControlName="resourceCount" type="number" min="1" />
+				<small class="field-error" *ngIf="showError('resourceCount')">Resources must be at least 1.</small>
+			</label>
+
+			<label>
+				<span class="meta-label">Initial Status</span>
+				<select formControlName="status">
+					<option value="available">Available</option>
+					<option value="in-progress">In Progress</option>
+					<option value="completed">Completed</option>
+					<option value="locked">Locked</option>
+				</select>
+			</label>
+
+			<label>
+				<span class="meta-label">Prerequisite Node</span>
+				<select formControlName="prerequisiteId">
+					<option value="">None</option>
+					<option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
+				</select>
+			</label>
+
+			<label>
+				<span class="meta-label">Following Node</span>
+				<select formControlName="followingNodeId">
+					<option value="">None</option>
+					<option *ngFor="let node of followingNodeOptions()" [value]="node.id">{{ node.title }}</option>
+				</select>
+			</label>
+
+			<label class="full-width">
+				<span class="meta-label">Node Beside (Same Level)</span>
+				<select formControlName="besideNodeId">
+					<option value="">Auto Position</option>
+					<option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
+				</select>
+			</label>
+		</form>
+
+		<div class="modal-actions">
+			<button type="button" class="ghost" (click)="close()">Cancel</button>
+			<button type="button" class="ghost" [disabled]="addForm.invalid" (click)="addReading()">Add Reading</button>
+			<button type="button" class="primary" [disabled]="addForm.invalid" (click)="addCourse()">Add Course</button>
+		</div>
+	</article>
+</div>

@@ -8,7 +8,7 @@
         <p class="muted">{{ roadmapData.description }}</p>
       </div>
 
-      <button type="button" class="primary" (click)="openAddModal()">Add Node</button>
+      <button type="button" class="primary" (click)="openUpdateModal()">Add Node</button>
     </div>
 
     <div class="progress-head">
@@ -110,75 +110,9 @@
   </article>
 </div>
 
-<div class="modal-overlay" *ngIf="addModalOpen" (click)="closeAddModal()">
-  <article class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>Add Learning Node</h3>
-      <button type="button" class="close-btn" (click)="closeAddModal()">✕</button>
-    </div>
-
-    <p class="modal-sub">Create a course or reading and connect it with prerequisite/following nodes.</p>
-
-    <div class="add-grid">
-      <label>
-        <span class="meta-label">Node Title</span>
-        <input [(ngModel)]="addForm.title" type="text" placeholder="e.g. Angular Components" />
-      </label>
-
-      <label>
-        <span class="meta-label">Duration</span>
-        <input [(ngModel)]="addForm.duration" type="text" placeholder="e.g. 6h" />
-      </label>
-
-      <label class="full-width">
-        <span class="meta-label">Description</span>
-        <textarea [(ngModel)]="addForm.description" rows="2" placeholder="Short description"></textarea>
-      </label>
-
-      <label>
-        <span class="meta-label">Resources Count</span>
-        <input [(ngModel)]="addForm.resourceCount" type="number" min="1" />
-      </label>
-
-      <label>
-        <span class="meta-label">Initial Status</span>
-        <select [(ngModel)]="addForm.status">
-          <option value="available">Available</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="locked">Locked</option>
-        </select>
-      </label>
-
-      <label>
-        <span class="meta-label">Prerequisite Node</span>
-        <select [(ngModel)]="addForm.prerequisiteId">
-          <option value="">None</option>
-          <option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
-        </select>
-      </label>
-
-      <label>
-        <span class="meta-label">Following Node</span>
-        <select [(ngModel)]="addForm.followingNodeId">
-          <option value="">None</option>
-          <option *ngFor="let node of followingNodeOptions()" [value]="node.id">{{ node.title }}</option>
-        </select>
-      </label>
-
-      <label class="full-width">
-        <span class="meta-label">Node Beside (Same Level)</span>
-        <select [(ngModel)]="addForm.besideNodeId">
-          <option value="">Auto Position</option>
-          <option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="modal-actions">
-      <button type="button" class="ghost" (click)="closeAddModal()">Cancel</button>
-      <button type="button" class="ghost" [disabled]="!addForm.title.trim()" (click)="addReading()">AddReading</button>
-      <button type="button" class="primary" [disabled]="!addForm.title.trim()" (click)="addCourse()">AddCourse</button>
-    </div>
-  </article>
-</div>
+<app-roadmap-detail-update
+  [isOpen]="updateModalOpen"
+  [nodes]="nodes"
+  (closed)="closeUpdateModal()"
+  (nodesUpdated)="applyUpdatedNodes($event)"
+></app-roadmap-detail-update>

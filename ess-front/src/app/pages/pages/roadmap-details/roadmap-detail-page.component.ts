@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { RouterModule } from '@angular/router';
+import { RoadmapDetailUpdate } from './roadmap-detail-update/roadmap-detail-update';
 
 interface NodeItem {
   id: string;
@@ -23,36 +23,22 @@ interface RoadmapDetail {
   nodes: NodeItem[];
 }
 
-interface AddNodeForm {
-  title: string;
-  description: string;
-  duration: string;
-  resourceCount: number;
-  status: NodeItem['status'];
-  prerequisiteId: string;
-  followingNodeId: string;
-  besideNodeId: string;
-}
-
 @Component({
   selector: 'app-roadmap-detail-page',
   templateUrl: './roadmap-detail-page.component.html',
   styleUrls: ['./roadmap-detail-page.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule]
+  imports: [CommonModule, RouterModule, RoadmapDetailUpdate]
 })
 export class RoadmapDetailPageComponent {
   readonly NODE_W = 190;
   readonly NODE_H = 130;
-  readonly H_GAP = 60;
-  readonly V_GAP = 40;
   readonly roadmapId: string;
   readonly roadmapData: RoadmapDetail;
 
   nodes: NodeItem[] = [];
   selectedNode: NodeItem | null = null;
-  addModalOpen = false;
-  addForm: AddNodeForm = this.createEmptyAddForm();
+  updateModalOpen = false;
 
   private readonly roadmapMap: Record<string, RoadmapDetail> = {
     '1': {
@@ -221,154 +207,16 @@ export class RoadmapDetailPageComponent {
     return this.nodes.find((node) => node.id === id)?.title ?? 'Unknown';
   }
 
-  openAddModal(): void {
-    this.addForm = this.createEmptyAddForm();
-    this.addModalOpen = true;
+  openUpdateModal(): void {
+    this.updateModalOpen = true;
   }
 
-  closeAddModal(): void {
-    this.addModalOpen = false;
+  closeUpdateModal(): void {
+    this.updateModalOpen = false;
   }
 
-  addCourse(): void {
-    this.addNode('video');
-  }
-
-  addReading(): void {
-    this.addNode('book');
-  }
-
-  followingNodeOptions(): NodeItem[] {
-    if (!this.addForm.prerequisiteId) {
-      return this.nodes;
-    }
-
-    return this.nodes.filter((node) => node.id !== this.addForm.prerequisiteId);
-  }
-
-  private createEmptyAddForm(): AddNodeForm {
-    return {
-      title: '',
-      description: '',
-      duration: '6h',
-      resourceCount: 1,
-      status: 'available',
-      prerequisiteId: '',
-      followingNodeId: '',
-      besideNodeId: ''
-    };
-  }
-
-  private addNode(mediaType: NodeItem['mediaType']): void {
-    const title = this.addForm.title.trim();
-    if (!title) {
-      return;
-    }
-
-    const prerequisites = this.addForm.prerequisiteId ? [this.addForm.prerequisiteId] : [];
-    const newNodeId = this.nextNodeId(mediaType);
-    const pos = this.nextPosition(prerequisites[0] ?? null, this.addForm.besideNodeId || null);
-    const status = prerequisites.length
-      ? this.isPrerequisiteComplete(prerequisites[0])
-        ? this.addForm.status
-        : 'locked'
-      : this.addForm.status;
-
-    const newNode: NodeItem = {
-      id: newNodeId,
-      title,
-      description: this.addForm.description.trim() || (mediaType === 'book' ? 'Reading node' : 'Course node'),
-      duration: this.addForm.duration.trim() || '6h',
-      mediaType,
-      resourceCount: Math.max(1, this.addForm.resourceCount),
-      status,
-      prerequisites,
-      pos
-    };
-
-    let updatedNodes = [...this.nodes, newNode];
-    if (this.addForm.followingNodeId) {
-      updatedNodes = updatedNodes.map((node) => {
-        if (node.id !== this.addForm.followingNodeId) {
-          return node;
-        }
-
-        if (node.prerequisites.includes(newNodeId)) {
-          return node;
-        }
-
-        return { ...node, prerequisites: [...node.prerequisites, newNodeId] };
-      });
-    }
-
-    this.nodes = this.normalizeSameLevelOrder(updatedNodes);
-    this.closeAddModal();
-  }
-
-  private nextNodeId(mediaType: NodeItem['mediaType']): string {
-    const prefix = mediaType === 'book' ? 'r' : 'n';
-    const max = this.nodes.reduce((acc, node) => {
-      if (!node.id.startsWith(prefix)) {
-        return acc;
-      }
-
-      const parsed = Number(node.id.slice(1));
-      return Number.isNaN(parsed) ? acc : Math.max(acc, parsed);
-    }, 0);
-
-    return `${prefix}${max + 1}`;
-  }
-
-  private isPrerequisiteComplete(id: string): boolean {
-    return this.nodes.some((node) => node.id === id && node.status === 'completed');
-  }
-
-  private nextPosition(prerequisiteId: string | null, besideNodeId: string | null): NodeItem['pos'] {
-    const beside = besideNodeId ? this.nodes.find((node) => node.id === besideNodeId) : null;
-    if (beside) {
-      return {
-        x: beside.pos.x + this.NODE_W + this.H_GAP,
-        y: beside.pos.y
-      };
-    }
-
-    const prerequisite = prerequisiteId ? this.nodes.find((node) => node.id === prerequisiteId) : null;
-    const y = prerequisite
-      ? prerequisite.pos.y + this.NODE_H + this.V_GAP
-      : this.nodes.reduce((acc, node) => Math.max(acc, node.pos.y), 0) + this.NODE_H + this.V_GAP;
-
-    const levelNodes = this.nodes.filter((node) => Math.abs(node.pos.y - y) <= 8);
-    const rightMost = levelNodes.reduce((acc, node) => Math.max(acc, node.pos.x), -this.NODE_W - this.H_GAP);
-
-    return {
-      x: rightMost + this.NODE_W + this.H_GAP,
-      y
-    };
-  }
-
-  private normalizeSameLevelOrder(items: NodeItem[]): NodeItem[] {
-    const rows = new Map<number, NodeItem[]>();
-
-    for (const node of items) {
-      const key = Math.round(node.pos.y / 10) * 10;
-      const row = rows.get(key) ?? [];
-      row.push(node);
-      rows.set(key, row);
-    }
-
-    const orderedRows = [...rows.entries()].sort((a, b) => a[0] - b[0]);
-    const leftPadding = 50;
-
-    for (const [rowKey, rowNodes] of orderedRows) {
-      rowNodes.sort((a, b) => a.pos.x - b.pos.x);
-      rowNodes.forEach((node, index) => {
-        node.pos = {
-          x: leftPadding + index * (this.NODE_W + this.H_GAP),
-          y: rowKey
-        };
-      });
-    }
-
-    return items;
+  applyUpdatedNodes(nodes: NodeItem[]): void {
+    this.nodes = nodes;
+    this.updateModalOpen = false;
   }
 }

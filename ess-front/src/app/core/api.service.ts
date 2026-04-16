@@ -2,10 +2,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
+  ChannelDto,
+  CreateFieldDto,
   DashboardDto,
   DownloadStatusDto,
+  FieldDto,
+  PlaylistDetailDto,
   PlaylistDto,
   ProgressDto,
+  UpdateFieldDto,
   VideoDto,
   VideoFormatDto,
   VideoListItemDto,
@@ -19,10 +24,33 @@ export class ApiService {
 
   constructor(private readonly http: HttpClient) {}
 
+  // Dashboard
   getDashboard(): Observable<DashboardDto> {
     return this.http.get<DashboardDto>(`${this.baseUrl}/api/dashboard`);
   }
 
+  // Fields
+  getFields(): Observable<FieldDto[]> {
+    return this.http.get<FieldDto[]>(`${this.baseUrl}/api/fields`);
+  }
+
+  getField(id: number): Observable<FieldDto> {
+    return this.http.get<FieldDto>(`${this.baseUrl}/api/fields/${id}`);
+  }
+
+  createField(dto: CreateFieldDto): Observable<FieldDto> {
+    return this.http.post<FieldDto>(`${this.baseUrl}/api/fields`, dto);
+  }
+
+  updateField(id: number, dto: UpdateFieldDto): Observable<FieldDto> {
+    return this.http.put<FieldDto>(`${this.baseUrl}/api/fields/${id}`, dto);
+  }
+
+  deleteField(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/fields/${id}`);
+  }
+
+  // Playlists
   getPlaylists(fieldId?: number): Observable<PlaylistDto[]> {
     let params = new HttpParams();
     if (fieldId !== undefined) {
@@ -32,6 +60,15 @@ export class ApiService {
     return this.http.get<PlaylistDto[]>(`${this.baseUrl}/api/playlists`, { params });
   }
 
+  getPlaylist(id: number): Observable<PlaylistDetailDto> {
+    return this.http.get<PlaylistDetailDto>(`${this.baseUrl}/api/playlists/${id}`);
+  }
+
+  deletePlaylist(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/playlists/${id}`);
+  }
+
+  // Videos
   getVideos(filters?: { playlistId?: number; fieldId?: number }): Observable<VideoListItemDto[]> {
     let params = new HttpParams();
 
@@ -61,6 +98,7 @@ export class ApiService {
     });
   }
 
+  // Downloads
   getVideoFormats(videoId: number): Observable<VideoFormatDto[]> {
     return this.http.get<VideoFormatDto[]>(`${this.baseUrl}/api/videos/${videoId}/download/formats`);
   }

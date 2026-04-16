@@ -288,37 +288,6 @@ h2 {
 	font-size: 0.85rem;
 }
 
-.add-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.65rem;
-}
-
-.add-grid label {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.add-grid input,
-.add-grid select,
-.add-grid textarea {
-	border: 1px solid var(--border);
-	border-radius: 0.5rem;
-	padding: 0.5rem 0.6rem;
-	font: inherit;
-	background: var(--surface);
-	color: inherit;
-}
-
-.add-grid textarea {
-	resize: vertical;
-}
-
-.full-width {
-	grid-column: 1 / -1;
-}
-
 .meta-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -391,10 +360,6 @@ h2 {
 	}
 
 	.meta-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.add-grid {
 		grid-template-columns: 1fr;
 	}
 }

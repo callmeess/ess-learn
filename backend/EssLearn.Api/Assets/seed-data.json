@@ -1,0 +1,224 @@
+{
+  "fields": [
+    {
+      "name": "Web Development",
+      "description": "Learn modern web development with HTML, CSS, JavaScript, and frameworks.",
+      "color": "#3b82f6",
+      "icon": "web"
+    },
+    {
+      "name": "Machine Learning",
+      "description": "Master machine learning algorithms and deep learning concepts.",
+      "color": "#8b5cf6",
+      "icon": "brain"
+    },
+    {
+      "name": "Data Science",
+      "description": "Learn data analysis, visualization, and statistical methods.",
+      "color": "#ec4899",
+      "icon": "chart"
+    },
+    {
+      "name": "Cloud Computing",
+      "description": "Explore AWS, Azure, and GCP cloud platforms.",
+      "color": "#06b6d4",
+      "icon": "cloud"
+    },
+    {
+      "name": "DevOps & Infrastructure",
+      "description": "Learn Docker, Kubernetes, CI/CD, and infrastructure automation.",
+      "color": "#f59e0b",
+      "icon": "server"
+    }
+  ],
+  "channels": [
+    {
+      "youtubeChannelId": "UC-lHJZR3Gqxm24iZ8-7nrGw",
+      "title": "Traversy Media",
+      "thumbnailUrl": "https://yt3.ggpht.com/-1lQ8q-FPSaA/AAAAAAAAAAI/AAAAAAAAAAA/lWYWjEkR1cQ/s88-c-k-no-mo-rj-c0xffffff/photo.jpg",
+      "subscriberCount": 2000000
+    },
+    {
+      "youtubeChannelId": "UC29ju8bIPH5as8OLFyrsbA",
+      "title": "Fireship",
+      "thumbnailUrl": "https://yt3.ggpht.com/ytc/APkrFKYy4J-7gVNJF4QWHKIYZP0mAUyxLaLnKjQ2jA=s88-c-k-c0x00ffffff-no-rj",
+      "subscriberCount": 1000000
+    },
+    {
+      "youtubeChannelId": "UCkRfArvrzheW2E7b6SVV_Ew",
+      "title": "Coding Train",
+      "thumbnailUrl": "https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj",
+      "subscriberCount": 1500000
+    }
+  ],
+  "playlists": [
+    {
+      "fieldIndex": 0,
+      "channelIndex": 0,
+      "title": "Web Design Tutorial Series",
+      "description": "Complete web design fundamentals including responsive design and modern CSS techniques.",
+      "thumbnailUrl": "https://img.youtube.com/vi/jX3XJpxOYXU/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/playlist?list=PLillGF-RfqbY3c2r0htQyVsgDLn_f-9C7"
+    },
+    {
+      "fieldIndex": 0,
+      "channelIndex": 1,
+      "title": "React in 100 Seconds",
+      "description": "Quick introduction to React and component-based architecture.",
+      "thumbnailUrl": "https://img.youtube.com/vi/Tn6-PIqc4UM/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/watch?v=Tn6-PIqc4UM"
+    },
+    {
+      "fieldIndex": 1,
+      "channelIndex": 0,
+      "title": "Machine Learning Crash Course",
+      "description": "Introduction to machine learning concepts and practical implementations.",
+      "thumbnailUrl": "https://img.youtube.com/vi/aircAruvnKk/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/playlist?list=PLkDaJ6LfdtKiryPZiFW_HVR5qJWYzruyP"
+    },
+    {
+      "fieldIndex": 1,
+      "channelIndex": 2,
+      "title": "Neural Networks - The Nature of Code",
+      "description": "Understanding neural networks and their biological inspiration.",
+      "thumbnailUrl": "https://img.youtube.com/vi/XJ7HLz9VYSc/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/playlist?list=PLRqwX-V7Uu6aCibgK3xXJmSR0A0--NySn"
+    },
+    {
+      "fieldIndex": 2,
+      "channelIndex": 0,
+      "title": "Data Science with Python",
+      "description": "Learn data analysis and visualization with pandas and matplotlib.",
+      "thumbnailUrl": "https://img.youtube.com/vi/vmEHCJofslg/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/playlist?list=PLillGF-RfqbY3c2r0htQyVsgDLn_f-9C7"
+    },
+    {
+      "fieldIndex": 3,
+      "channelIndex": 1,
+      "title": "Cloud Computing 101",
+      "description": "Fundamentals of cloud computing platforms and services.",
+      "thumbnailUrl": "https://img.youtube.com/vi/SOTamCETW8w/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/watch?v=SOTamCETW8w"
+    },
+    {
+      "fieldIndex": 4,
+      "channelIndex": 0,
+      "title": "Docker & Kubernetes Tutorial",
+      "description": "Master containerization and orchestration for modern applications.",
+      "thumbnailUrl": "https://img.youtube.com/vi/3c-iBn73dDE/maxresdefault.jpg",
+      "sourceUrl": "https://www.youtube.com/playlist?list=PLillGF-RfqbY3c2r0htQyVsgDLn_f-9C7"
+    }
+  ],
+  "videos": [
+    {
+      "playlistIndex": 0,
+      "youtubeVideoId": "jX3XJpxOYXU",
+      "title": "Web Design Principles",
+      "thumbnailUrl": "https://img.youtube.com/vi/jX3XJpxOYXU/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=jX3XJpxOYXU",
+      "durationSeconds": 1242,
+      "position": 1,
+      "publishedAt": "2022-01-15T10:00:00Z"
+    },
+    {
+      "playlistIndex": 0,
+      "youtubeVideoId": "wfaDzSL6ll0",
+      "title": "CSS Flexbox Mastery",
+      "thumbnailUrl": "https://img.youtube.com/vi/wfaDzSL6ll0/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=wfaDzSL6ll0",
+      "durationSeconds": 1847,
+      "position": 2,
+      "publishedAt": "2022-01-20T11:00:00Z"
+    },
+    {
+      "playlistIndex": 0,
+      "youtubeVideoId": "HN1UjzJHPDc",
+      "title": "Responsive Design Patterns",
+      "thumbnailUrl": "https://img.youtube.com/vi/HN1UjzJHPDc/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=HN1UjzJHPDc",
+      "durationSeconds": 2156,
+      "position": 3,
+      "publishedAt": "2022-02-01T12:00:00Z"
+    },
+    {
+      "playlistIndex": 1,
+      "youtubeVideoId": "Tn6-PIqc4UM",
+      "title": "React in 100 Seconds",
+      "thumbnailUrl": "https://img.youtube.com/vi/Tn6-PIqc4UM/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=Tn6-PIqc4UM",
+      "durationSeconds": 100,
+      "position": 1,
+      "publishedAt": "2021-06-20T08:00:00Z"
+    },
+    {
+      "playlistIndex": 2,
+      "youtubeVideoId": "aircAruvnKk",
+      "title": "Neural Networks Explained",
+      "thumbnailUrl": "https://img.youtube.com/vi/aircAruvnKk/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=aircAruvnKk",
+      "durationSeconds": 823,
+      "position": 1,
+      "publishedAt": "2017-10-09T09:00:00Z"
+    },
+    {
+      "playlistIndex": 2,
+      "youtubeVideoId": "ILsxfylQAXM",
+      "title": "Gradient Descent Explained",
+      "thumbnailUrl": "https://img.youtube.com/vi/ILsxfylQAXM/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=ILsxfylQAXM",
+      "durationSeconds": 512,
+      "position": 2,
+      "publishedAt": "2017-10-20T10:00:00Z"
+    },
+    {
+      "playlistIndex": 3,
+      "youtubeVideoId": "XJ7HLz9VYSc",
+      "title": "Neural Networks - Part 1",
+      "thumbnailUrl": "https://img.youtube.com/vi/XJ7HLz9VYSc/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=XJ7HLz9VYSc",
+      "durationSeconds": 1823,
+      "position": 1,
+      "publishedAt": "2016-11-20T14:00:00Z"
+    },
+    {
+      "playlistIndex": 4,
+      "youtubeVideoId": "vmEHCJofslg",
+      "title": "Data Science Basics",
+      "thumbnailUrl": "https://img.youtube.com/vi/vmEHCJofslg/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=vmEHCJofslg",
+      "durationSeconds": 2341,
+      "position": 1,
+      "publishedAt": "2022-03-10T15:00:00Z"
+    },
+    {
+      "playlistIndex": 5,
+      "youtubeVideoId": "SOTamCETW8w",
+      "title": "Cloud Computing Fundamentals",
+      "thumbnailUrl": "https://img.youtube.com/vi/SOTamCETW8w/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=SOTamCETW8w",
+      "durationSeconds": 1534,
+      "position": 1,
+      "publishedAt": "2021-05-15T16:00:00Z"
+    },
+    {
+      "playlistIndex": 6,
+      "youtubeVideoId": "3c-iBn73dDE",
+      "title": "Docker Tutorial for Beginners",
+      "thumbnailUrl": "https://img.youtube.com/vi/3c-iBn73dDE/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=3c-iBn73dDE",
+      "durationSeconds": 2847,
+      "position": 1,
+      "publishedAt": "2020-12-25T09:00:00Z"
+    },
+    {
+      "playlistIndex": 6,
+      "youtubeVideoId": "d6WC5n9G_sM",
+      "title": "Kubernetes Explained",
+      "thumbnailUrl": "https://img.youtube.com/vi/d6WC5n9G_sM/hqdefault.jpg",
+      "url": "https://www.youtube.com/watch?v=d6WC5n9G_sM",
+      "durationSeconds": 1756,
+      "position": 2,
+      "publishedAt": "2021-01-10T10:00:00Z"
+    }
+  ]
+}
