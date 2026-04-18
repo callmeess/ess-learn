@@ -157,3 +157,15 @@ export interface ProgressDto {
   lastWatchedAt: string | null;
   completedAt: string | null;
 }
+
+export interface ImportPlaylistDto {
+  playlistUrl: string;
+  fieldId: number;
+}
+
+export interface ImportResultDto {
+  playlistId: number;
+  title: string;
+  videosImported: number;
+  channelTitle: string;
+}

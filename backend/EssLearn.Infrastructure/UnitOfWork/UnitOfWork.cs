@@ -23,6 +23,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Video>? _videos;
     private IRepository<VideoProgress>? _videoProgresses;
     private IRepository<DownloadedVideo>? _downloadedVideos;
+    private IRepository<StorageIntegrity>? _storageIntegrities;
+    private IRepository<BlobStorageLog>? _blobStorageLogs;
 
     public UnitOfWork(AppDbContext dbContext)
     {
@@ -46,6 +48,12 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<DownloadedVideo> DownloadedVideos =>
         _downloadedVideos ??= new Repository<DownloadedVideo>(_dbContext);
+
+    public IRepository<StorageIntegrity> StorageIntegrities =>
+        _storageIntegrities ??= new Repository<StorageIntegrity>(_dbContext);
+
+    public IRepository<BlobStorageLog> BlobStorageLogs =>
+        _blobStorageLogs ??= new Repository<BlobStorageLog>(_dbContext);
 
     public async Task<int> SaveChangesAsync()
     {

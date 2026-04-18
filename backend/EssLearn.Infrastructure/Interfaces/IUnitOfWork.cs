@@ -12,6 +12,8 @@ public interface IUnitOfWork : IAsyncDisposable
     IRepository<Video> Videos { get; }
     IRepository<VideoProgress> VideoProgresses { get; }
     IRepository<DownloadedVideo> DownloadedVideos { get; }
+    IRepository<StorageIntegrity> StorageIntegrities { get; }
+    IRepository<BlobStorageLog> BlobStorageLogs { get; }
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();
     Task CommitAsync();

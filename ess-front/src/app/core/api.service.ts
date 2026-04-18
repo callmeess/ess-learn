@@ -1,22 +1,24 @@
-import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import {
-  ChannelDto,
-  CreateFieldDto,
-  DashboardDto,
-  DownloadStatusDto,
-  FieldDto,
-  PlaylistDetailDto,
-  PlaylistDto,
-  ProgressDto,
-  UpdateFieldDto,
-  VideoDto,
-  VideoFormatDto,
-  VideoListItemDto,
-  VideoStatus
-} from './api.models';
 import { API_BASE_URL } from './api.config';
+import {
+    CreateFieldDto,
+    DashboardDto,
+    DownloadedVideoDto,
+    DownloadStatusDto,
+    FieldDto,
+    ImportPlaylistDto,
+    ImportResultDto,
+    PlaylistDetailDto,
+    PlaylistDto,
+    ProgressDto,
+    UpdateFieldDto,
+    VideoDto,
+    VideoFormatDto,
+    VideoListItemDto,
+    VideoStatus
+} from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -103,11 +105,20 @@ export class ApiService {
     return this.http.get<VideoFormatDto[]>(`${this.baseUrl}/api/videos/${videoId}/download/formats`);
   }
 
-  downloadVideo(videoId: number, formatId: string, quality: string): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/api/videos/${videoId}/download`, { formatId, quality });
+  downloadVideo(videoId: number, formatId: string, quality: string): Observable<DownloadedVideoDto> {
+    return this.http.post<DownloadedVideoDto>(`${this.baseUrl}/api/videos/${videoId}/download`, { formatId, quality });
+  }
+
+  deleteDownload(videoId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/videos/${videoId}/download`);
   }
 
   getDownloadStatus(videoId: number): Observable<DownloadStatusDto> {
     return this.http.get<DownloadStatusDto>(`${this.baseUrl}/api/videos/${videoId}/download/status`);
+  }
+
+  // Import
+  importPlaylist(dto: ImportPlaylistDto): Observable<ImportResultDto> {
+    return this.http.post<ImportResultDto>(`${this.baseUrl}/api/import/playlist`, dto);
   }
 }

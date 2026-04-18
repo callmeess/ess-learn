@@ -1,5 +1,7 @@
 using EssLearn.Application.Interfaces.YtDlp;
 using EssLearn.Application.Services.YtDlp;
+using EssLearn.Application.Services.BlobStorage;
+using EssLearn.Application.Dtos.BlobStorage;
 using EssLearn.Core.Interfaces;
 using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
@@ -9,6 +11,7 @@ using EssLearn.Infrastructure.Services.YtDlp;
 using EssLearn.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Minio;
 
 namespace EssLearn.Api.Extensions;
 
@@ -21,6 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddApplicationDbContext(config);
         services.AddApplicationCaching(config);
         services.AddExternalServices(config);
+        services.AddBlobStorage(config);
         services.AddApplicationUnitOfWork();
         services.AddApplicationServiceLayer();
         services.AddApplicationControllers();
@@ -51,6 +55,35 @@ public static class ServiceCollectionExtensions
             opt.Configuration = config.GetConnectionString("Redis");
             opt.InstanceName = "esslearn:";
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers blob storage services (MinIO).
+    /// </summary>
+    private static IServiceCollection AddBlobStorage(this IServiceCollection services, IConfiguration config)
+    {
+        // Get blob storage options from configuration
+        var blobStorageOptions = new BlobStorageOptions();
+        config.GetSection("BlobStorage").Bind(blobStorageOptions);
+        services.AddSingleton(blobStorageOptions);
+
+        // Register MinIO client
+        services.AddSingleton<IMinioClient>(sp =>
+        {
+            var minioClient = new MinioClient()
+                .WithEndpoint(blobStorageOptions.Endpoint)
+                .WithCredentials(blobStorageOptions.AccessKey, blobStorageOptions.SecretKey);
+
+            if (blobStorageOptions.UseSSL)
+                minioClient = minioClient.WithSSL();
+
+            return minioClient.Build();
+        });
+
+        // Register blob storage service
+        services.AddScoped<IBlobStorageService, BlobStorageService>();
 
         return services;
     }
