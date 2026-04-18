@@ -1,4 +1,4 @@
-using EssLearn.Api.Dtos;
+using EssLearn.Application.Dtos;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
 using EssLearn.Core.Interfaces;
@@ -7,9 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EssLearn.Infrastructure.Services;
 
-/// <summary>
-/// Service for managing playlists and their related data.
-/// </summary>
 public class PlaylistService : IPlaylistService
 {
     private readonly IUnitOfWork _unitOfWork;

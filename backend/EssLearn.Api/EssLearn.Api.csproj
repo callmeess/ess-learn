@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EssLearn.Core\EssLearn.Core.csproj" />
+    <ProjectReference Include="..\EssLearn.Application\EssLearn.Application.csproj" />
     <ProjectReference Include="..\EssLearn.Infrastructure\EssLearn.Infrastructure.csproj" />
   </ItemGroup>
 

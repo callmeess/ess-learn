@@ -1,4 +1,4 @@
-using EssLearn.Api.Dtos;
+using EssLearn.Application.Dtos;
 using EssLearn.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +8,7 @@ namespace EssLearn.Api.Controllers;
 [Route("api/videos/{videoId}/[controller]")]
 public class DownloadController(IDownloadService downloadService) : ControllerBase
 {
-    IDownloadService _downloadService  = downloadService;
+    IDownloadService _downloadService = downloadService;
 
     [HttpGet("formats")]
     public async Task<ActionResult<List<VideoFormatDto>>> GetFormats(int videoId)
@@ -62,17 +62,17 @@ public class DownloadController(IDownloadService downloadService) : ControllerBa
     private static string FormatFileSize(long bytes)
     {
         if (bytes == 0) return "Unknown";
-        
+
         string[] sizes = { "B", "KB", "MB", "GB" };
         int order = 0;
         double size = bytes;
-        
+
         while (size >= 1024 && order < sizes.Length - 1)
         {
             order++;
             size /= 1024;
         }
-        
+
         return $"{size:0.##} {sizes[order]}";
     }
 }

@@ -1,16 +1,13 @@
-using EssLearn.Api.Dtos;
 using EssLearn.Core.Enums;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
+using EssLearn.Application.Dtos;
 
 namespace EssLearn.Infrastructure.Services;
 
-/// <summary>
-/// Service for retrieving dashboard statistics and summaries.
-/// </summary>
 public class DashboardService : IDashboardService
 {
     private readonly AppDbContext _dbContext;

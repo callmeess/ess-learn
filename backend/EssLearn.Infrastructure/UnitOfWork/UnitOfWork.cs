@@ -1,5 +1,6 @@
 using EssLearn.Core.Entities;
 using EssLearn.Core.Interfaces;
+using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -23,7 +24,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<VideoProgress>? _videoProgresses;
     private IRepository<DownloadedVideo>? _downloadedVideos;
 
-    public UnitOfWork(DbContext dbContext)
+    public UnitOfWork(AppDbContext dbContext)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }

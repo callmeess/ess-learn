@@ -1,4 +1,4 @@
-using EssLearn.Api.Dtos;
+using EssLearn.Application.Dtos;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;

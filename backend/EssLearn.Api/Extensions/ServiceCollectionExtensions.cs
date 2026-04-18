@@ -1,4 +1,3 @@
-using EssLearn.Core.Entities;
 using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
@@ -9,14 +8,10 @@ using Microsoft.OpenApi.Models;
 
 namespace EssLearn.Api.Extensions;
 
-/// <summary>
-/// Extension methods for configuring application services.
-/// </summary>
+
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
     /// Adds all application services to the dependency injection container.
-    /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddApplicationDbContext(config);
@@ -72,23 +67,19 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers the Unit of Work pattern and repositories.
-    /// </summary>
+
     private static IServiceCollection AddApplicationUnitOfWork(this IServiceCollection services)
     {
         // Generic repository
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         // Unit of Work
-        services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }
 
-    /// <summary>
     /// Registers all business logic services.
-    /// </summary>
     private static IServiceCollection AddApplicationServiceLayer(this IServiceCollection services)
     {
         services.AddScoped<IFieldService, FieldService>();
@@ -101,9 +92,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
     /// Registers controllers and configures JSON serialization.
-    /// </summary>
     private static IServiceCollection AddApplicationControllers(this IServiceCollection services)
     {
         services.AddControllers()
@@ -112,9 +101,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers Swagger/OpenAPI documentation.
-    /// </summary>
+
     private static IServiceCollection AddApplicationSwagger(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
@@ -126,9 +113,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
     /// Configures CORS policies.
-    /// </summary>
     private static IServiceCollection AddApplicationCors(this IServiceCollection services)
     {
         services.AddCors(opt => opt.AddDefaultPolicy(p =>
