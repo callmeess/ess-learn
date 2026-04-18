@@ -1,0 +1,28 @@
+<div class="home-layout">
+	<nav class="side-menu">
+		<ul>
+			<li><a routerLink="/">Home</a></li>
+			<li><a routerLink="/videos">Videos</a></li>
+			<li><a routerLink="/playlists">Playlists</a></li>
+			<li><a routerLink="/channels">Channels</a></li>
+			<li><a routerLink="/downloads">Downloads</a></li>
+			<li><a routerLink="/analytics">Analytics</a></li>
+			<li><a routerLink="/schedule">Schedule</a></li>
+			<li><a routerLink="/roadmaps">Roadmaps</a></li>
+			<li><a routerLink="/account">Account</a></li>
+		</ul>
+	</nav>
+	<div class="home-container">
+		<div class="centerpiece">
+			<div class="image-holder">
+				<img src="assets/logo.png" alt="Welcome" *ngIf="showImage" />
+				<div class="quote" *ngIf="!showImage">
+					"Learning never exhausts the mind."<br />
+					<span class="author">- Leonardo da Vinci</span>
+				</div>
+			</div>
+		</div>
+		<h1 class="title">Welcome to EssLearn</h1>
+		<p class="subtitle">Your journey to knowledge starts here.</p>
+	</div>
+</div>

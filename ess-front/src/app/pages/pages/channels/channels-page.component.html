@@ -1,0 +1,51 @@
+<section class="channels-page">
+  <div class="section-header">
+    <h2>Channels</h2>
+    <p>Manage your favorite educational content creators</p>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <p class="value">{{ channels.length }}</p>
+      <p class="label">Channels</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ avgProgress }}%</p>
+      <p class="label">Avg Progress</p>
+    </article>
+  </div>
+
+  <div class="channel-grid">
+    <article class="channel-card" *ngFor="let channel of channels">
+      <div class="head">
+        <img [src]="channel.thumbnail" [alt]="channel.name" />
+        <div>
+          <h3>{{ channel.name }}</h3>
+          <p class="muted">{{ channel.handle }}</p>
+          <p class="subscribers">{{ channel.subscriberCount }} subscribers</p>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div>
+          <p class="metric-value">{{ channel.videoCount }}</p>
+          <p class="metric-label">Videos</p>
+        </div>
+        <div>
+          <p class="metric-value blue">{{ channel.downloadedCount }}</p>
+          <p class="metric-label">Downloaded</p>
+        </div>
+        <div>
+          <p class="metric-value green">{{ channel.watchProgress }}%</p>
+          <p class="metric-label">Watched</p>
+        </div>
+      </div>
+
+      <div class="progress-row">
+        <div class="track">
+          <div class="fill" [style.width.%]="channel.watchProgress"></div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

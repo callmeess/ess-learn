@@ -1,0 +1,118 @@
+<section class="page">
+  <header class="detail-header">
+    <a routerLink="/roadmaps" class="back">Back to Roadmaps</a>
+
+    <div class="title-row">
+      <div>
+        <h2>{{ roadmapData.title }}</h2>
+        <p class="muted">{{ roadmapData.description }}</p>
+      </div>
+
+      <button type="button" class="primary" (click)="openUpdateModal()">Add Node</button>
+    </div>
+
+    <div class="progress-head">
+      <span>Overall Progress</span>
+      <span>{{ completedCount }} / {{ totalCount }} nodes ({{ progress }}%)</span>
+    </div>
+    <div class="track"><div class="fill" [style.width.%]="progress" [style.background]="roadmapData.color"></div></div>
+  </header>
+
+  <section class="canvas-wrap">
+    <article class="canvas-card">
+      <div class="canvas-inner" [style.width.px]="canvasWidth" [style.height.px]="canvasHeight">
+        <svg class="canvas-svg" [attr.width]="canvasWidth" [attr.height]="canvasHeight">
+          <g *ngFor="let connection of connections">
+            <path
+              [attr.d]="pathData(connection)"
+              fill="none"
+              [attr.stroke]="connectionColor(connection)"
+              stroke-width="2"
+              [attr.stroke-dasharray]="connection.to.status === 'locked' ? '5 5' : '4 4'"
+            ></path>
+            <circle [attr.cx]="toNodeX(connection)" [attr.cy]="toNodeY(connection)" r="4" [attr.fill]="connectionColor(connection)"></circle>
+          </g>
+        </svg>
+
+        <article
+          class="node"
+          *ngFor="let node of nodes"
+          [class]="'node ' + statusClass(node) + (node.mediaType === 'book' ? ' reading' : '')"
+          [style.left.px]="node.pos.x"
+          [style.top.px]="node.pos.y"
+          (click)="openNode(node)"
+        >
+          <div class="node-top">
+            <span class="node-icon">{{ statusIcon(node.status) }}</span>
+            <span class="node-title">{{ node.title }}</span>
+          </div>
+
+          <p class="node-desc">{{ node.description }}</p>
+
+          <div class="node-meta">
+            <span>{{ contentLabel(node) }}</span>
+            <span>⏱ {{ node.duration }}</span>
+          </div>
+
+          <span [class]="'status-badge ' + node.status">{{ statusLabel(node.status) }}</span>
+        </article>
+      </div>
+    </article>
+  </section>
+
+  <section class="legend">
+    <span><i class="dot completed"></i>Completed</span>
+    <span><i class="dot in-progress"></i>In Progress</span>
+    <span><i class="dot available"></i>Available</span>
+    <span><i class="dot locked"></i>Locked (Prerequisites required)</span>
+  </section>
+</section>
+
+<div class="modal-overlay" *ngIf="selectedNode" (click)="closeNodeModal()">
+  <article class="modal" (click)="$event.stopPropagation()" *ngIf="selectedNode as node">
+    <div class="modal-header">
+      <h3>{{ node.title }}</h3>
+      <button type="button" class="close-btn" (click)="closeNodeModal()">✕</button>
+    </div>
+
+    <p class="modal-sub">{{ node.description }}</p>
+
+    <div class="meta-grid">
+      <div>
+        <p class="meta-label">Duration</p>
+        <p class="meta-value">{{ node.duration }}</p>
+      </div>
+      <div>
+        <p class="meta-label">Content</p>
+        <p class="meta-value">{{ node.mediaType === 'book' ? node.resourceCount + ' books/articles' : node.resourceCount + ' videos' }}</p>
+      </div>
+      <div>
+        <p class="meta-label">Type</p>
+        <p class="meta-value">{{ nodeKindLabel(node) }}</p>
+      </div>
+      <div>
+        <p class="meta-label">Status</p>
+        <p class="meta-value">{{ statusLabel(node.status) }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="node.prerequisites.length" class="prereqs">
+      <p class="meta-label">Prerequisites</p>
+      <p class="prereq-item" *ngFor="let prereq of node.prerequisites">{{ prerequisiteTitle(prereq) }}</p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="closeNodeModal()">Close</button>
+      <button type="button" class="primary" *ngIf="node.status === 'available'" (click)="startNode(node.id)">Start Node</button>
+      <button type="button" class="green" *ngIf="node.status === 'in-progress'" (click)="completeNode(node.id)">Mark Node Complete</button>
+      <button type="button" class="green" *ngIf="node.status === 'completed'" disabled>Completed</button>
+    </div>
+  </article>
+</div>
+
+<app-roadmap-detail-update
+  [isOpen]="updateModalOpen"
+  [nodes]="nodes"
+  (closed)="closeUpdateModal()"
+  (nodesUpdated)="applyUpdatedNodes($event)"
+></app-roadmap-detail-update>

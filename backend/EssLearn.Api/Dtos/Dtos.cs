@@ -15,6 +15,7 @@ public record PlaylistDto(int Id, int FieldId, string Title, string? Description
 public record PlaylistDetailDto(PlaylistDto Playlist, List<VideoDto> Videos);
 
 // --- Videos ---
+public record VideoListItemDto(int Id, int PlaylistId, int FieldId, string Title, string? ThumbnailUrl, string? Url, int DurationSeconds, int Position, VideoStatus Status, int WatchedSeconds, string PlaylistTitle, string? ChannelTitle, bool IsDownloaded, DateTime? PublishedAt, DateTime CreatedAt);
 public record VideoDto(int Id, int PlaylistId, string? YoutubeVideoId, string Title, string? ThumbnailUrl, string? Url, int DurationSeconds, int Position, VideoStatus Status, int WatchedSeconds);
 public record VideoDetailDto(int Id, int PlaylistId, string? YoutubeVideoId, string Title, string? ThumbnailUrl, string? Url, int DurationSeconds, int Position, VideoStatus Status, int WatchedSeconds, bool IsDownloaded, DownloadedVideoDto? Download);
 

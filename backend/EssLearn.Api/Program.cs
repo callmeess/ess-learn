@@ -1,45 +1,28 @@
-using EssLearn.Core.Interfaces;
+using EssLearn.Api.Extensions;
 using EssLearn.Infrastructure.Data;
-using EssLearn.Infrastructure.Services;
+using EssLearn.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
-
-// Redis
-builder.Services.AddStackExchangeRedisCache(opt =>
-{
-    opt.Configuration = builder.Configuration.GetConnectionString("Redis");
-    opt.InstanceName = "esslearn:";
-});
-
-// YouTube
-var ytApiKey = builder.Configuration["YouTube:ApiKey"]
-    ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
-builder.Services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
-
-// Video Download
-builder.Services.AddScoped<IVideoDownloadService, VideoDownloadService>();
-
-// Controllers + JSON
-builder.Services.AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
-
-// CORS
-builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
-    p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod()));
+// Add all application services
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddScoped<DataSeeder>();
 
 var app = builder.Build();
 
-// Auto-migrate in development
+// Auto-migrate and seed database in development
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "EssLearn API v1"));
+
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    
     await db.Database.MigrateAsync();
+    await seeder.SeedAsync();
 }
 
 app.UseCors();

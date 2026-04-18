@@ -1,0 +1,12 @@
+.page { padding: 1.25rem; max-width: 72rem; margin: 0 auto; }
+.back { color: var(--text-muted); font-size: 0.9rem; }
+h2 { margin: 0.8rem 0; font-size: 1.8rem; }
+.list { display: grid; gap: 0.7rem; }
+.item { border: 1px solid var(--border); border-radius: 0.8rem; background: var(--surface); padding: 0.9rem; display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; }
+.title { margin: 0; }
+.muted { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.86rem; }
+.status { text-transform: capitalize; border-radius: 999px; padding: 0.2rem 0.55rem; font-size: 0.78rem; font-weight: 600; }
+.status.completed { background: #dcfce7; color: #166534; }
+.status.in-progress { background: #dbeafe; color: #1d4ed8; }
+.status.available { background: #f1f5f9; color: #334155; }
+.status.locked { background: #e2e8f0; color: #64748b; }

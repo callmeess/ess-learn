@@ -1,0 +1,73 @@
+<section class="videos-page">
+  <div class="lib-header">
+    <h2 class="lib-title">Video Library</h2>
+    <p class="lib-sub">Manage and organize your learning videos</p>
+  </div>
+
+  <div class="lib-toolbar">
+    <select class="filter-pill" [value]="currentCategory" (change)="setCategory($any($event.target).value)">
+      <option *ngFor="let category of categories" [value]="category.value">
+        {{ category.label }}
+      </option>
+    </select>
+
+    <select class="filter-pill" [value]="sortBy" (change)="setSort($any($event.target).value)">
+      <option value="recent">Recently Added</option>
+      <option value="duration">Duration</option>
+      <option value="alpha">A to Z</option>
+      <option value="progress">Most Progress</option>
+    </select>
+
+    <div class="count-label">{{ filteredVideos.length }} {{ filteredVideos.length === 1 ? 'video' : 'videos' }}</div>
+  </div>
+
+  <div class="empty" *ngIf="isLoading">Loading videos...</div>
+  <div class="empty" *ngIf="!isLoading && errorMessage">
+    {{ errorMessage }}
+    <button type="button" class="filter-pill" (click)="loadVideos()">Retry</button>
+  </div>
+
+  <div class="empty" *ngIf="!isLoading && !errorMessage && filteredVideos.length === 0">No videos found</div>
+
+  <div class="video-grid" *ngIf="!isLoading && !errorMessage && filteredVideos.length > 0">
+    <article class="vid-card" *ngFor="let video of filteredVideos">
+      <a [routerLink]="['/videos', video.id]" class="vid-thumb" [style.background]="'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'">
+        <div class="thumb-emoji">{{ video.thumbEmoji }}</div>
+        <span class="vid-duration">{{ video.duration }}</span>
+        <span class="vid-dl-badge" *ngIf="video.downloaded">⬇</span>
+
+        <div class="vid-play-overlay">
+          <div class="vid-play-btn">▶</div>
+        </div>
+      </a>
+
+      <div class="vid-body">
+        <div class="vid-body-row">
+          <div class="vid-body-info">
+            <a [routerLink]="['/videos', video.id]" class="vid-title">{{ video.title }}</a>
+            <p class="vid-channel">{{ video.channel }}</p>
+
+            <div class="vid-meta">
+              <span>{{ video.date }}</span>
+              <span class="vid-meta-dot"></span>
+
+              <span class="vid-progress-tag" *ngIf="video.watchProgress && video.watchProgress < 100">
+                {{ video.watchProgress }}% watched
+              </span>
+
+              <span class="vid-completed-tag" *ngIf="video.status === 'completed'">
+                Completed
+              </span>
+
+              <span class="vid-playlist-tag" *ngIf="!video.watchProgress || video.watchProgress === 0">
+                {{ playlistSnippet(video.playlist) }}
+              </span>
+            </div>
+          </div>
+
+          <span class="vid-menu-btn">⋯</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

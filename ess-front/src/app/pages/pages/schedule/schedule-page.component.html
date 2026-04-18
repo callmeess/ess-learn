@@ -1,0 +1,29 @@
+<section class="page">
+  <div class="heading-row">
+    <div>
+      <h2>Learning Schedule</h2>
+      <p>Plan and track your daily learning activities</p>
+    </div>
+    <div class="btns">
+      <button type="button" [class.active]="viewMode === 'calendar'" (click)="viewMode = 'calendar'">Calendar</button>
+      <button type="button" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">List</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <article class="card"><p class="num">{{ scheduledCount }}</p><p class="lbl">Scheduled</p></article>
+    <article class="card"><p class="num">{{ completedCount }}</p><p class="lbl">Completed</p></article>
+    <article class="card"><p class="num">{{ missedCount }}</p><p class="lbl">Missed</p></article>
+  </div>
+
+  <article class="list-card">
+    <h3>{{ viewMode === 'calendar' ? 'Calendar Snapshot' : 'List Snapshot' }}</h3>
+    <div class="item" *ngFor="let item of schedule">
+      <div>
+        <p class="title">{{ item.title }}</p>
+        <p class="muted">{{ item.date }}</p>
+      </div>
+      <span [class]="'status ' + item.status">{{ item.status }}</span>
+    </div>
+  </article>
+</section>

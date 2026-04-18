@@ -1,0 +1,27 @@
+<section class="page">
+  <div class="heading-row">
+    <div>
+      <h2>Reading Lists</h2>
+      <p>Manage books and articles for your learning journey</p>
+    </div>
+    <button type="button" class="primary">Create Reading List</button>
+  </div>
+
+  <div class="filters">
+    <input type="text" placeholder="Search lists or tags" [(ngModel)]="searchQuery" />
+    <select [(ngModel)]="category">
+      <option *ngFor="let c of categories" [value]="c">{{ c === 'all' ? 'All Categories' : c }}</option>
+    </select>
+  </div>
+
+  <div class="grid">
+    <article class="card" *ngFor="let item of filtered">
+      <a [routerLink]="['/reading', item.id]" class="title">{{ item.title }}</a>
+      <p class="muted">{{ item.category }}</p>
+      <p class="muted">{{ item.completedItems }}/{{ item.totalItems }} complete • {{ item.estimatedHours }}h</p>
+      <div class="tags">
+        <span *ngFor="let tag of item.tags">{{ tag }}</span>
+      </div>
+    </article>
+  </div>
+</section>

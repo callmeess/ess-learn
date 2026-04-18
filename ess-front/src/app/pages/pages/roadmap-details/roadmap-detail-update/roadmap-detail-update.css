@@ -1,0 +1,130 @@
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	background: rgba(15, 23, 42, 0.45);
+	backdrop-filter: blur(3px);
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+}
+
+.modal {
+	width: min(30rem, 100%);
+	border-radius: 0.95rem;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	padding: 1rem;
+}
+
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.modal-header h3 {
+	margin: 0;
+}
+
+.close-btn {
+	border: 1px solid var(--border);
+	border-radius: 0.45rem;
+	background: var(--surface);
+	width: 1.9rem;
+	height: 1.9rem;
+	cursor: pointer;
+}
+
+.modal-sub {
+	margin: 0.25rem 0 0.8rem;
+	color: var(--text-muted);
+	font-size: 0.85rem;
+}
+
+.add-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.65rem;
+}
+
+.add-grid label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.add-grid input,
+.add-grid select,
+.add-grid textarea {
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	padding: 0.5rem 0.6rem;
+	font: inherit;
+	background: var(--surface);
+	color: inherit;
+}
+
+.add-grid input.ng-invalid.ng-touched,
+.add-grid select.ng-invalid.ng-touched,
+.add-grid textarea.ng-invalid.ng-touched {
+	border-color: #ef4444;
+}
+
+.field-error {
+	font-size: 0.72rem;
+	color: #b91c1c;
+}
+
+.add-grid textarea {
+	resize: vertical;
+}
+
+.full-width {
+	grid-column: 1 / -1;
+}
+
+.meta-label {
+	margin: 0;
+	font-size: 0.72rem;
+	color: var(--text-muted);
+	text-transform: uppercase;
+}
+
+.modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.95rem;
+}
+
+.primary,
+.ghost {
+	border-radius: 0.6rem;
+	padding: 0.6rem 0.95rem;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.primary {
+	border: 0;
+	background: var(--primary);
+	color: #fff;
+}
+
+.ghost {
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: inherit;
+}
+
+.modal-actions button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+@media (max-width: 780px) {
+	.add-grid {
+		grid-template-columns: 1fr;
+	}
+}

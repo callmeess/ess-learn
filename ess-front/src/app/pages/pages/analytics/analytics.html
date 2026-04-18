@@ -1,0 +1,62 @@
+<section class="page">
+  <div class="heading-row">
+    <div>
+      <h2>Analytics</h2>
+      <p>Track your learning progress and insights</p>
+    </div>
+    <select [(ngModel)]="timeRange">
+      <option value="week">This Week</option>
+      <option value="month">This Month</option>
+      <option value="quarter">This Quarter</option>
+      <option value="all">All Time</option>
+    </select>
+  </div>
+
+  <div class="stats-grid">
+    <article class="card">
+      <p class="num">{{ totalHours.toFixed(1) }}h</p>
+      <p class="lbl">Total Watch Time</p>
+    </article>
+    <article class="card">
+      <p class="num">{{ totalVideos }}</p>
+      <p class="lbl">Videos Watched</p>
+    </article>
+    <article class="card">
+      <p class="num">{{ completedVideos }}</p>
+      <p class="lbl">Completed Videos</p>
+    </article>
+    <article class="card">
+      <p class="num">{{ averageDurationHours.toFixed(1) }}h</p>
+      <p class="lbl">Avg Duration</p>
+    </article>
+  </div>
+
+  <article class="table-card" *ngIf="isLoading">
+    <h3>Loading analytics...</h3>
+  </article>
+
+  <article class="table-card" *ngIf="!isLoading && errorMessage">
+    <h3>{{ errorMessage }}</h3>
+    <button type="button" (click)="loadDashboard()">Retry</button>
+  </article>
+
+  <article class="table-card" *ngIf="!isLoading && !errorMessage">
+    <h3>Topic Breakdown</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Hours</th>
+          <th>Videos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let topic of topicData">
+          <td>{{ topic.topic }}</td>
+          <td>{{ topic.hours.toFixed(1) }}h</td>
+          <td>{{ topic.videos }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+</section>

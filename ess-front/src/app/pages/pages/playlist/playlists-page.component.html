@@ -1,0 +1,57 @@
+<section class="playlists-page">
+  <div class="section-header">
+    <h2>Playlists</h2>
+    <p>Organized video collections for structured learning</p>
+  </div>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <p class="value">{{ playlists.length }}</p>
+      <p class="label">Total Playlists</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ totalVideos }}</p>
+      <p class="label">Total Videos</p>
+    </article>
+    <article class="stat-card">
+      <p class="value">{{ totalCompleted }}</p>
+      <p class="label">Completed</p>
+    </article>
+  </div>
+
+  <div class="section-header" *ngIf="isLoading">
+    <p>Loading playlists...</p>
+  </div>
+
+  <div class="section-header" *ngIf="!isLoading && errorMessage">
+    <p>{{ errorMessage }}</p>
+    <button type="button" (click)="loadPlaylists()">Retry</button>
+  </div>
+
+  <div class="playlist-list" *ngIf="!isLoading && !errorMessage">
+    <article class="playlist-card" *ngFor="let playlist of playlists">
+      <div class="playlist-cover">
+        <img [src]="playlist.thumbnail" [alt]="playlist.title" />
+        <div class="cover-overlay">{{ playlist.videoCount }} videos</div>
+      </div>
+
+      <div class="playlist-body">
+        <h3>{{ playlist.title }}</h3>
+        <p class="muted">{{ playlist.channel }}</p>
+
+        <div class="meta-row">
+          <span>{{ playlist.videoCount }} videos</span>
+          <span>{{ playlist.totalDuration }}</span>
+          <span>{{ playlist.completedCount }}/{{ playlist.videoCount }} completed</span>
+        </div>
+
+        <div class="progress-row">
+          <div class="track">
+            <div class="fill" [style.width.%]="playlist.progress"></div>
+          </div>
+          <span>{{ playlist.progress }}%</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

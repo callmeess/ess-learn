@@ -1,0 +1,9 @@
+@import './default_shadcn_theme.css';
+@import './theme.css';
+
+/* placeholder for additional imported rules (fonts, utilities) */
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
