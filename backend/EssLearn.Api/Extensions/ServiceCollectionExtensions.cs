@@ -1,7 +1,11 @@
+using EssLearn.Application.Interfaces.YtDlp;
+using EssLearn.Application.Services.YtDlp;
 using EssLearn.Core.Interfaces;
+using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
 using EssLearn.Infrastructure.Services;
+using EssLearn.Infrastructure.Services.YtDlp;
 using EssLearn.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -61,8 +65,10 @@ public static class ServiceCollectionExtensions
             ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
         services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
 
-        // Video Download Service
         services.AddScoped<IVideoDownloadService, VideoDownloadService>();
+        services.AddScoped<IYtDlpOrchestrator, YtDlpOrchestrator>();
+        services.AddScoped<IYtDlpService, YtDlpService>();
+        services.AddScoped<IYtDlpManager, YtDlpManager>();
 
         return services;
     }
