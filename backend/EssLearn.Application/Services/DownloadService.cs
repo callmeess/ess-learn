@@ -93,7 +93,7 @@ public class DownloadService : IDownloadService
 
         // Check if already downloaded
         var existingDownload = await _dbContext.DownloadedVideos
-            .FirstOrDefaultAsync(dv => dv.VideoId == videoId);
+        .FirstOrDefaultAsync(dv => dv.PublicVideoId == videoId);
         if (existingDownload != null)
             throw new InvalidOperationException("Video is already downloaded.");
 
@@ -130,7 +130,7 @@ public class DownloadService : IDownloadService
             // Save to database in transaction
             var downloadedVideo = new DownloadedVideo
             {
-                VideoId = videoId,
+                PublicVideoId = videoId,
                 Quality = dto.Quality,
                 FormatId = dto.FormatId,
                 FileSizeBytes = fileBytes.Length,
@@ -196,7 +196,7 @@ public class DownloadService : IDownloadService
     public async Task DeleteDownloadAsync(int videoId)
     {
         var downloadedVideo = await _dbContext.DownloadedVideos
-            .FirstOrDefaultAsync(dv => dv.VideoId == videoId);
+            .FirstOrDefaultAsync(dv => dv.PublicVideoId == videoId);
         if (downloadedVideo == null)
             throw new InvalidOperationException("Download not found.");
 
@@ -232,7 +232,7 @@ public class DownloadService : IDownloadService
     public async Task<object> GetDownloadStatusAsync(int videoId)
     {
         var downloadedVideo = await _dbContext.DownloadedVideos
-            .FirstOrDefaultAsync(dv => dv.VideoId == videoId);
+            .FirstOrDefaultAsync(dv => dv.PublicVideoId == videoId);
 
         return new
         {

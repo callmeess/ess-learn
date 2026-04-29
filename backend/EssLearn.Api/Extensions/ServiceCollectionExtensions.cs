@@ -127,6 +127,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDownloadService, DownloadService>();
+        services.AddScoped<IRoadmapService, RoadmapService>();
 
         return services;
     }
@@ -155,10 +156,12 @@ public static class ServiceCollectionExtensions
     /// Configures CORS policies.
     private static IServiceCollection AddApplicationCors(this IServiceCollection services)
     {
-        services.AddCors(opt => opt.AddDefaultPolicy(p =>
-            p.WithOrigins("http://localhost:4200", "http://localhost:5173")
-                .AllowAnyHeader()
-                .AllowAnyMethod()));
+        // services.AddCors(opt => opt.AddDefaultPolicy(p =>
+        //     p.WithOrigins("http://localhost:4200", "http://localhost:5173")
+        //         .AllowAnyHeader()
+        //         .AllowAnyMethod()));
+        services.AddCors(opt => opt.AddDefaultPolicy(p => p.
+        AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
         return services;
     }

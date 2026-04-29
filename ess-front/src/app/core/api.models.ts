@@ -169,3 +169,64 @@ export interface ImportResultDto {
   videosImported: number;
   channelTitle: string;
 }
+
+// --- Roadmaps ---
+export interface RoadmapDto {
+  id: number;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapNodeDto {
+  id: number;
+  roadmapId: number;
+  playlistId: number;
+  playlist: PlaylistDto;
+  position: number;
+  levelOrder: number;
+  parent: RoadmapNodeDto | null;
+  children: RoadmapNodeDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapDetailDto {
+  id: number;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  progress: number;
+  nodes: RoadmapNodeDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoadmapDto {
+  name: string;
+  description?: string;
+  iconUrl?: string;
+}
+
+export interface UpdateRoadmapDto {
+  name: string;
+  description?: string;
+  iconUrl?: string;
+}
+
+export interface AddPlaylistToRoadmapDto {
+  playlistId: number;
+  position: number;
+  levelOrder: number;
+  parentNodeId?: number | null;
+}
+
+export interface UpdateRoadmapNodeDto {
+  position: number;
+  levelOrder: number;
+  parentNodeId?: number | null;
+}
+

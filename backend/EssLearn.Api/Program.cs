@@ -1,6 +1,5 @@
 using EssLearn.Api.Extensions;
-using EssLearn.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using EssLearn.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,18 +9,19 @@ builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Auto-migrate and seed database in development
+// Auto-migrate database on startup
+using var scope = app.Services.CreateScope();
+var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+var connectionString = app.Configuration.GetConnectionString("Database");
+
+var migrator = new DatabaseMigrator(connectionString);
+await migrator.ApplyMigrationsAsync();
+
+// Swagger UI in development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "EssLearn API v1"));
-
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-
-    await db.Database.MigrateAsync();
-    // await seeder.SeedAsync();
 }
 
 app.UseCors();

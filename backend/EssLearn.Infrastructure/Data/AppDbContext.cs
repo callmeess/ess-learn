@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<DownloadedVideo> DownloadedVideos => Set<DownloadedVideo>();
     public DbSet<StorageIntegrity> StorageIntegrities => Set<StorageIntegrity>();
     public DbSet<BlobStorageLog> BlobStorageLogs => Set<BlobStorageLog>();
+    public DbSet<RoadMap> Roadmaps => Set<RoadMap>();
+    public DbSet<RoadmapNode> RoadmapNodes => Set<RoadmapNode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,9 +71,9 @@ public class AppDbContext : DbContext
             e.Property(dv => dv.BlobPath).HasMaxLength(1000);
             e.Property(dv => dv.BlobBucket).HasMaxLength(100).IsRequired();
             e.Property(dv => dv.Sha256Hash).HasMaxLength(64);
-            e.HasIndex(dv => dv.VideoId).IsUnique();
+            e.HasIndex(dv => dv.PublicVideoId).IsUnique();
             e.HasIndex(dv => dv.BlobPath).IsUnique(false);
-            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.VideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.PublicVideoId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(dv => dv.StorageIntegrity).WithOne(si => si.DownloadedVideo).HasForeignKey<StorageIntegrity>(si => si.DownloadedVideoId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -95,6 +97,23 @@ public class AppDbContext : DbContext
             e.HasIndex(bl => new { bl.BlobBucket, bl.Operation, bl.CreatedAt }).IsUnique(false);
             e.HasIndex(bl => bl.Success);
             e.HasIndex(bl => bl.CreatedAt);
+        });
+
+        modelBuilder.Entity<RoadMap>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Name).HasMaxLength(500).IsRequired();
+            e.Property(r => r.Iconurl).HasMaxLength(500);
+            e.HasMany(r => r.Playlists).WithOne(rn => rn.Roadmap).HasForeignKey(rn => rn.RoadmapId).OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<RoadmapNode>(e =>
+        {
+            e.HasKey(rn => rn.Id);
+            e.HasIndex(rn => new { rn.RoadmapId, rn.PlaylistId }).IsUnique();
+            e.HasOne(rn => rn.Roadmap).WithMany(r => r.Playlists).HasForeignKey(rn => rn.RoadmapId).OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(rn => rn.Playlist).WithMany().HasForeignKey(rn => rn.PlaylistId).OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(rn => rn.Parent).WithMany(rn => rn.Children).HasForeignKey("ParentId").OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

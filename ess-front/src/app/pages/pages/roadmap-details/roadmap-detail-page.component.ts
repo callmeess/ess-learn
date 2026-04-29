@@ -1,26 +1,24 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { RoadmapService } from '../../../core/roadmap.service';
+import { RoadmapNodeDto, AddPlaylistToRoadmapDto } from '../../../core/api.models';
 import { RoadmapDetailUpdate } from './roadmap-detail-update/roadmap-detail-update';
 
-interface NodeItem {
+export interface NodeItem {
   id: string;
   title: string;
   description: string;
-  status: 'completed' | 'in-progress' | 'available' | 'locked';
   duration: string;
   mediaType: 'video' | 'book';
   resourceCount: number;
   prerequisites: string[];
   pos: { x: number; y: number };
-}
-
-interface RoadmapDetail {
-  title: string;
-  description: string;
-  color: string;
-  nodes: NodeItem[];
+  status: 'completed' | 'in-progress' | 'available' | 'locked';
 }
 
 @Component({
@@ -28,142 +26,141 @@ interface RoadmapDetail {
   templateUrl: './roadmap-detail-page.component.html',
   styleUrls: ['./roadmap-detail-page.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, RoadmapDetailUpdate]
+  imports: [CommonModule, RouterModule, FormsModule, RoadmapDetailUpdate],
 })
-export class RoadmapDetailPageComponent {
-  readonly NODE_W = 190;
-  readonly NODE_H = 130;
-  readonly roadmapId: string;
-  readonly roadmapData: RoadmapDetail;
-
-  nodes: NodeItem[] = [];
-  selectedNode: NodeItem | null = null;
+export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
+  // UI State
+  showAddPlaylistForm = false;
   updateModalOpen = false;
+  selectedNode: NodeItem | null = null;
 
-  private readonly roadmapMap: Record<string, RoadmapDetail> = {
-    '1': {
-      title: 'Full Stack Web Development',
-      description: 'Complete hybrid roadmap with videos and books for frontend, backend, databases, and deployment.',
-      color: '#3b82f6',
-      nodes: [
-        { id: 'n1', title: 'HTML and CSS Basics', description: 'Foundation of web development', duration: '8h', mediaType: 'video', resourceCount: 5, status: 'completed', prerequisites: [], pos: { x: 370, y: 30 } },
-        { id: 'n2', title: 'JavaScript Fundamentals', description: 'Core JavaScript concepts', duration: '15h', mediaType: 'video', resourceCount: 10, status: 'completed', prerequisites: ['n1'], pos: { x: 120, y: 200 } },
-        { id: 'n3', title: 'Git and GitHub', description: 'Version control basics', duration: '5h', mediaType: 'video', resourceCount: 4, status: 'completed', prerequisites: ['n1'], pos: { x: 620, y: 200 } },
-        { id: 'r1', title: 'JavaScript Reading List', description: 'Essential books and articles', duration: '25h', mediaType: 'book', resourceCount: 4, status: 'in-progress', prerequisites: ['n2'], pos: { x: 370, y: 370 } },
-        { id: 'n4', title: 'React Basics', description: 'Modern frontend framework', duration: '20h', mediaType: 'video', resourceCount: 12, status: 'in-progress', prerequisites: ['n2'], pos: { x: 50, y: 540 } },
-        { id: 'n5', title: 'Node.js and Express', description: 'Backend with JavaScript', duration: '18h', mediaType: 'video', resourceCount: 11, status: 'available', prerequisites: ['n2'], pos: { x: 300, y: 540 } },
-        { id: 'n6', title: 'Database Design (SQL)', description: 'Relational databases', duration: '12h', mediaType: 'video', resourceCount: 8, status: 'available', prerequisites: ['n2'], pos: { x: 550, y: 540 } },
-        { id: 'r2', title: 'React Deep Dive', description: 'React books and articles', duration: '12h', mediaType: 'book', resourceCount: 3, status: 'available', prerequisites: ['n4'], pos: { x: 50, y: 710 } },
-        { id: 'n7', title: 'RESTful APIs', description: 'Building web APIs', duration: '10h', mediaType: 'video', resourceCount: 7, status: 'locked', prerequisites: ['n5', 'n6'], pos: { x: 420, y: 710 } },
-        { id: 'n9', title: 'React Advanced Patterns', description: 'Advanced React concepts', duration: '15h', mediaType: 'video', resourceCount: 9, status: 'locked', prerequisites: ['n4', 'r2'], pos: { x: 50, y: 880 } },
-        { id: 'n8', title: 'Authentication and Security', description: 'User auth and security', duration: '8h', mediaType: 'video', resourceCount: 6, status: 'locked', prerequisites: ['n7'], pos: { x: 420, y: 880 } },
-        { id: 'n10', title: 'Full Stack Integration', description: 'Connect frontend and backend', duration: '12h', mediaType: 'video', resourceCount: 8, status: 'locked', prerequisites: ['n8', 'n9'], pos: { x: 200, y: 1060 } },
-        { id: 'r3', title: 'System Design Reading', description: 'Architectural patterns', duration: '30h', mediaType: 'book', resourceCount: 3, status: 'locked', prerequisites: ['n10'], pos: { x: 450, y: 1060 } },
-        { id: 'n11', title: 'Testing and QA', description: 'Unit and integration tests', duration: '10h', mediaType: 'video', resourceCount: 7, status: 'locked', prerequisites: ['n10'], pos: { x: 80, y: 1230 } },
-        { id: 'n12', title: 'Deployment and DevOps', description: 'Deploy to production', duration: '8h', mediaType: 'video', resourceCount: 5, status: 'locked', prerequisites: ['n10'], pos: { x: 360, y: 1230 } }
-      ]
-    }
+  // Roadmap Data
+  roadmapData = {
+    title: 'Loading...',
+    description: '',
+    color: '#3b82f6',
   };
 
-  constructor(route: ActivatedRoute) {
-    this.roadmapId = route.snapshot.params['id'] ?? '1';
-    this.roadmapData = this.roadmapMap[this.roadmapId] ?? this.roadmapMap['1'];
-    this.nodes = this.roadmapData.nodes.map((node) => ({ ...node }));
+  // Canvas Data
+  nodes: NodeItem[] = [];
+  connections: { from: NodeItem; to: NodeItem }[] = [];
+  NODE_W = 200;
+  NODE_H = 100;
+  canvasWidth = 1200;
+  canvasHeight = 600;
+
+  // Progress Data
+  completedCount = 0;
+  totalCount = 0;
+  progress = 0;
+
+  // Form Data
+  newNodeForm = {
+    playlistId: 0,
+    position: 0,
+    levelOrder: 0,
+    parentNodeId: null as number | null,
+  };
+
+  private roadmapId = 0;
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private roadmapService: RoadmapService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {}
+
+  ngOnInit(): void {
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      this.roadmapId = +params['id'];
+      if (this.roadmapId) {
+        this.loadRoadmap();
+      }
+    });
   }
 
-  get completedCount(): number {
-    return this.nodes.filter((item) => item.status === 'completed').length;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  get totalCount(): number {
-    return this.nodes.length;
+  loadRoadmap(): void {
+    this.roadmapService.loadRoadmap(this.roadmapId).pipe(takeUntil(this.destroy$)).subscribe();
   }
 
-  get progress(): number {
-    return Math.round((this.completedCount / this.nodes.length) * 100);
-  }
-
-  get canvasWidth(): number {
-    const maxX = this.nodes.reduce((acc, node) => Math.max(acc, node.pos.x + this.NODE_W), 800);
-    return maxX + 40;
-  }
-
-  get canvasHeight(): number {
-    const maxY = this.nodes.reduce((acc, node) => Math.max(acc, node.pos.y + this.NODE_H), 1000);
-    return maxY + 40;
-  }
-
-  get connections(): Array<{ from: NodeItem; to: NodeItem }> {
-    return this.nodes.flatMap((node) =>
-      node.prerequisites
-        .map((id) => {
-          const from = this.nodes.find((item) => item.id === id);
-          if (!from) {
-            return null;
-          }
-
-          return { from, to: node };
-        })
-        .filter((item): item is { from: NodeItem; to: NodeItem } => !!item)
-    );
-  }
-
-  openNode(node: NodeItem): void {
-    if (node.status === 'locked') {
+  addPlaylist(): void {
+    if (this.newNodeForm.playlistId <= 0) {
+      alert('Please select a playlist');
       return;
     }
 
-    this.selectedNode = node;
+    const dto: AddPlaylistToRoadmapDto = {
+      playlistId: this.newNodeForm.playlistId,
+      position: this.newNodeForm.position,
+      levelOrder: this.newNodeForm.levelOrder,
+      parentNodeId: this.newNodeForm.parentNodeId,
+    };
+
+    this.roadmapService
+      .addPlaylistToRoadmap(this.roadmapId, dto)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.showAddPlaylistForm = false;
+        this.resetForm();
+      });
   }
 
-  closeNodeModal(): void {
-    this.selectedNode = null;
+  removeNode(nodeId: number): void {
+    if (confirm('Are you sure you want to remove this node from the roadmap?')) {
+      this.roadmapService
+        .removeRoadmapNode(nodeId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => {
+          this.loadRoadmap();
+        });
+    }
   }
 
-  startNode(id: string): void {
-    this.nodes = this.nodes.map((node) => (node.id === id ? { ...node, status: 'in-progress' } : node));
-    this.selectedNode = this.nodes.find((node) => node.id === id) ?? null;
+  goBack(): void {
+    this.router.navigate(['/roadmap']);
   }
 
-  completeNode(id: string): void {
-    const updatedNodes: NodeItem[] = this.nodes.map((node) =>
-      node.id === id ? { ...node, status: 'completed' as const } : node
-    );
-
-    this.nodes = updatedNodes.map((node): NodeItem => {
-      if (node.status !== 'locked') {
-        return node;
-      }
-
-      const isUnlocked = node.prerequisites.every((preId) =>
-        updatedNodes.some((item) => item.id === preId && item.status === 'completed')
-      );
-
-      return isUnlocked ? { ...node, status: 'available' as const } : node;
-    });
-
-    this.selectedNode = this.nodes.find((node) => node.id === id) ?? null;
+  resetForm(): void {
+    this.newNodeForm = {
+      playlistId: 0,
+      position: 0,
+      levelOrder: 0,
+      parentNodeId: null,
+    };
   }
 
-  statusClass(node: NodeItem): string {
-    return node.status;
+  toggleAddPlaylistForm(): void {
+    this.showAddPlaylistForm = !this.showAddPlaylistForm;
+    if (!this.showAddPlaylistForm) {
+      this.resetForm();
+    }
   }
 
-  contentLabel(node: NodeItem): string {
-    return node.mediaType === 'book'
-      ? `📖 ${node.resourceCount} books/articles`
-      : `🎬 ${node.resourceCount} videos`;
+  clearError(): void {
+    this.roadmapService.clearError();
   }
 
-  nodeKindLabel(node: NodeItem): string {
-    return node.mediaType === 'book' ? 'Book Node' : 'Video Node';
+  getNodeStatusClass(node: RoadmapNodeDto): string {
+    const playlist = node.playlist;
+    const progress =
+      playlist.totalVideos > 0 ? (playlist.completedVideos / playlist.totalVideos) * 100 : 0;
+
+    if (progress === 100) return 'completed';
+    if (progress > 0) return 'in-progress';
+    return 'available';
   }
 
-  statusLabel(status: NodeItem['status']): string {
+  statusLabel(status: string): string {
     return status.replace('-', ' ');
   }
 
-  statusIcon(status: NodeItem['status']): string {
+  statusIcon(status: string): string {
     if (status === 'completed') {
       return '✅';
     }
@@ -218,5 +215,40 @@ export class RoadmapDetailPageComponent {
   applyUpdatedNodes(nodes: NodeItem[]): void {
     this.nodes = nodes;
     this.updateModalOpen = false;
+  }
+
+  statusClass(node: NodeItem): string {
+    return node.status;
+  }
+
+  openNode(node: NodeItem): void {
+    this.selectedNode = node;
+  }
+
+  closeNodeModal(): void {
+    this.selectedNode = null;
+  }
+
+  startNode(nodeId: string): void {
+    // TODO: Implement start node functionality
+    console.log('Starting node:', nodeId);
+    this.closeNodeModal();
+  }
+
+  completeNode(nodeId: string): void {
+    // TODO: Implement complete node functionality
+    console.log('Completing node:', nodeId);
+    this.closeNodeModal();
+  }
+
+  contentLabel(node: NodeItem): string {
+    if (node.mediaType === 'book') {
+      return `${node.resourceCount} books/articles`;
+    }
+    return `${node.resourceCount} videos`;
+  }
+
+  nodeKindLabel(node: NodeItem): string {
+    return node.mediaType === 'book' ? 'Reading' : 'Video';
   }
 }

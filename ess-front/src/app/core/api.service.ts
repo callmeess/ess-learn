@@ -17,7 +17,14 @@ import {
     VideoDto,
     VideoFormatDto,
     VideoListItemDto,
-    VideoStatus
+    VideoStatus,
+    RoadmapDto,
+    RoadmapDetailDto,
+    RoadmapNodeDto,
+    CreateRoadmapDto,
+    UpdateRoadmapDto,
+    AddPlaylistToRoadmapDto,
+    UpdateRoadmapNodeDto
 } from './api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -120,5 +127,38 @@ export class ApiService {
   // Import
   importPlaylist(dto: ImportPlaylistDto): Observable<ImportResultDto> {
     return this.http.post<ImportResultDto>(`${this.baseUrl}/api/import/playlist`, dto);
+  }
+
+  // Roadmaps
+  getRoadmaps(): Observable<RoadmapDto[]> {
+    return this.http.get<RoadmapDto[]>(`${this.baseUrl}/api/roadmaps`);
+  }
+
+  getRoadmap(id: number): Observable<RoadmapDetailDto> {
+    return this.http.get<RoadmapDetailDto>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  createRoadmap(dto: CreateRoadmapDto): Observable<RoadmapDto> {
+    return this.http.post<RoadmapDto>(`${this.baseUrl}/api/roadmaps`, dto);
+  }
+
+  updateRoadmap(id: number, dto: UpdateRoadmapDto): Observable<RoadmapDto> {
+    return this.http.put<RoadmapDto>(`${this.baseUrl}/api/roadmaps/${id}`, dto);
+  }
+
+  deleteRoadmap(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  addPlaylistToRoadmap(roadmapId: number, dto: AddPlaylistToRoadmapDto): Observable<RoadmapNodeDto> {
+    return this.http.post<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/playlists`, dto);
+  }
+
+  updateRoadmapNode(nodeId: number, dto: UpdateRoadmapNodeDto): Observable<RoadmapNodeDto> {
+    return this.http.put<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/nodes/${nodeId}`, dto);
+  }
+
+  removeRoadmapNode(nodeId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/nodes/${nodeId}`);
   }
 }

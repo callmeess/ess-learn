@@ -3,7 +3,7 @@ namespace EssLearn.Core.Entities;
 public class DownloadedVideo
 {
     public int Id { get; set; }
-    public int VideoId { get; set; }
+    public int PublicVideoId { get; set; }
     
     public string Quality { get; set; } = string.Empty; // e.g., "1080p", "720p", "480p"
     public string FormatId { get; set; } = string.Empty; // yt-dlp format ID

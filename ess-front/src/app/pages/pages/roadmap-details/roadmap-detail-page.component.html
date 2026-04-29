@@ -15,7 +15,9 @@
       <span>Overall Progress</span>
       <span>{{ completedCount }} / {{ totalCount }} nodes ({{ progress }}%)</span>
     </div>
-    <div class="track"><div class="fill" [style.width.%]="progress" [style.background]="roadmapData.color"></div></div>
+    <div class="track">
+      <div class="fill" [style.width.%]="progress" [style.background]="roadmapData.color"></div>
+    </div>
   </header>
 
   <section class="canvas-wrap">
@@ -30,7 +32,12 @@
               stroke-width="2"
               [attr.stroke-dasharray]="connection.to.status === 'locked' ? '5 5' : '4 4'"
             ></path>
-            <circle [attr.cx]="toNodeX(connection)" [attr.cy]="toNodeY(connection)" r="4" [attr.fill]="connectionColor(connection)"></circle>
+            <circle
+              [attr.cx]="toNodeX(connection)"
+              [attr.cy]="toNodeY(connection)"
+              r="4"
+              [attr.fill]="connectionColor(connection)"
+            ></circle>
           </g>
         </svg>
 
@@ -84,7 +91,13 @@
       </div>
       <div>
         <p class="meta-label">Content</p>
-        <p class="meta-value">{{ node.mediaType === 'book' ? node.resourceCount + ' books/articles' : node.resourceCount + ' videos' }}</p>
+        <p class="meta-value">
+          {{
+            node.mediaType === 'book'
+              ? node.resourceCount + ' books/articles'
+              : node.resourceCount + ' videos'
+          }}
+        </p>
       </div>
       <div>
         <p class="meta-label">Type</p>
@@ -98,14 +111,32 @@
 
     <div *ngIf="node.prerequisites.length" class="prereqs">
       <p class="meta-label">Prerequisites</p>
-      <p class="prereq-item" *ngFor="let prereq of node.prerequisites">{{ prerequisiteTitle(prereq) }}</p>
+      <p class="prereq-item" *ngFor="let prereq of node.prerequisites">
+        {{ prerequisiteTitle(prereq) }}
+      </p>
     </div>
 
     <div class="modal-actions">
       <button type="button" class="ghost" (click)="closeNodeModal()">Close</button>
-      <button type="button" class="primary" *ngIf="node.status === 'available'" (click)="startNode(node.id)">Start Node</button>
-      <button type="button" class="green" *ngIf="node.status === 'in-progress'" (click)="completeNode(node.id)">Mark Node Complete</button>
-      <button type="button" class="green" *ngIf="node.status === 'completed'" disabled>Completed</button>
+      <button
+        type="button"
+        class="primary"
+        *ngIf="node.status === 'available'"
+        (click)="startNode(node.id)"
+      >
+        Start Node
+      </button>
+      <button
+        type="button"
+        class="green"
+        *ngIf="node.status === 'in-progress'"
+        (click)="completeNode(node.id)"
+      >
+        Mark Node Complete
+      </button>
+      <button type="button" class="green" *ngIf="node.status === 'completed'" disabled>
+        Completed
+      </button>
     </div>
   </article>
 </div>
