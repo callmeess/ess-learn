@@ -3,7 +3,6 @@ using EssLearn.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add all application services
 builder.Services.AddApplicationServices(builder.Configuration);
 // builder.Services.AddScoped<DataSeeder>();
 

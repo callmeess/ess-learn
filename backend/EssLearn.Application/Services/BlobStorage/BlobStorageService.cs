@@ -19,9 +19,7 @@ public class BlobStorageService : IBlobStorageService
     private readonly BlobStorageOptions _options;
     private readonly ILogger<BlobStorageService> _logger;
 
-    public BlobStorageService(
-        IMinioClient minioClient,
-        BlobStorageOptions options,
+    public BlobStorageService( IMinioClient minioClient, BlobStorageOptions options,
         ILogger<BlobStorageService> logger)
     {
         _minioClient = minioClient;
@@ -33,12 +31,8 @@ public class BlobStorageService : IBlobStorageService
     /// Uploads a file to MinIO with SHA256 integrity verification.
     /// </summary>
     public async Task<BlobStorageResult> UploadFileAsync(
-        string bucket,
-        string objectPath,
-        Stream fileStream,
-        long fileSize,
-        string contentType,
-        string? sha256Hash = null)
+        string bucket, string objectPath, Stream fileStream,
+        long fileSize, string contentType, string? sha256Hash = null)
     {
         try
         {
