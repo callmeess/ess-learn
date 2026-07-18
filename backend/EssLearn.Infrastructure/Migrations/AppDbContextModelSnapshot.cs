@@ -224,6 +224,119 @@ namespace EssLearn.Infrastructure.Migrations
                     b.ToTable("Playlists");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadMap", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoadMaps");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Duration")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PositionX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PositionY")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResourceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoadmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoadmapId");
+
+                    b.ToTable("RoadmapNodes");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNodePrerequisite", b =>
+                {
+                    b.Property<int>("NodeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PrerequisiteId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("NodeId", "PrerequisiteId");
+
+                    b.HasIndex("PrerequisiteId");
+
+                    b.ToTable("RoadmapNodePrerequisites");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
@@ -345,6 +458,36 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Navigation("Field");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.RoadMap", "Roadmap")
+                        .WithMany("Nodes")
+                        .HasForeignKey("RoadmapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Roadmap");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNodePrerequisite", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.RoadmapNode", "Node")
+                        .WithMany("PrerequisitesOf")
+                        .HasForeignKey("NodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.RoadmapNode", "Prerequisite")
+                        .WithMany("DependentsOf")
+                        .HasForeignKey("PrerequisiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Node");
+
+                    b.Navigation("Prerequisite");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.HasOne("EssLearn.Core.Entities.Playlist", "Playlist")
@@ -380,6 +523,18 @@ namespace EssLearn.Infrastructure.Migrations
             modelBuilder.Entity("EssLearn.Core.Entities.Playlist", b =>
                 {
                     b.Navigation("Videos");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadMap", b =>
+                {
+                    b.Navigation("Nodes");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.Navigation("DependentsOf");
+
+                    b.Navigation("PrerequisitesOf");
                 });
 
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>

@@ -4,13 +4,20 @@ import { Observable } from 'rxjs';
 import {
   ChannelDto,
   CreateFieldDto,
+  CreateRoadmapDto,
+  CreateRoadmapNodeDto,
   DashboardDto,
   DownloadStatusDto,
   FieldDto,
   PlaylistDetailDto,
   PlaylistDto,
   ProgressDto,
+  RoadmapDetailDto,
+  RoadmapListItemDto,
+  RoadmapNodeDto,
   UpdateFieldDto,
+  UpdateNodeStatusDto,
+  UpdateRoadmapNodeDto,
   VideoDto,
   VideoFormatDto,
   VideoListItemDto,
@@ -109,5 +116,38 @@ export class ApiService {
 
   getDownloadStatus(videoId: number): Observable<DownloadStatusDto> {
     return this.http.get<DownloadStatusDto>(`${this.baseUrl}/api/videos/${videoId}/download/status`);
+  }
+
+  // Roadmaps
+  getRoadmaps(): Observable<RoadmapListItemDto[]> {
+    return this.http.get<RoadmapListItemDto[]>(`${this.baseUrl}/api/roadmaps`);
+  }
+
+  getRoadmap(id: number): Observable<RoadmapDetailDto> {
+    return this.http.get<RoadmapDetailDto>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  createRoadmap(dto: CreateRoadmapDto): Observable<RoadmapListItemDto> {
+    return this.http.post<RoadmapListItemDto>(`${this.baseUrl}/api/roadmaps`, dto);
+  }
+
+  deleteRoadmap(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  addRoadmapNode(roadmapId: number, dto: CreateRoadmapNodeDto): Observable<RoadmapNodeDto> {
+    return this.http.post<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes`, dto);
+  }
+
+  updateNodeStatus(roadmapId: number, nodeId: number, dto: UpdateNodeStatusDto): Observable<RoadmapNodeDto> {
+    return this.http.put<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}/status`, dto);
+  }
+
+  updateRoadmapNode(roadmapId: number, nodeId: number, dto: UpdateRoadmapNodeDto): Observable<RoadmapNodeDto> {
+    return this.http.put<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}`, dto);
+  }
+
+  deleteRoadmapNode(roadmapId: number, nodeId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}`);
   }
 }

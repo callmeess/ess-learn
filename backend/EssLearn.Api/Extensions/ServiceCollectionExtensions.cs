@@ -2,6 +2,7 @@ using EssLearn.Application.Interfaces.YtDlp;
 using EssLearn.Application.Services.YtDlp;
 using EssLearn.Core.Interfaces;
 using EssLearn.Core.Interfaces.YtDlp;
+
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
 using EssLearn.Infrastructure.Services;
@@ -94,6 +95,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDownloadService, DownloadService>();
+        services.AddScoped<IRoadmapService, RoadmapService>();
 
         return services;
     }

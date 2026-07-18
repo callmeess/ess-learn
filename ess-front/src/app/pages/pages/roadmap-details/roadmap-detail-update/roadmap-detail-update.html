@@ -41,29 +41,21 @@
 				</select>
 			</label>
 
-			<label>
-				<span class="meta-label">Prerequisite Node</span>
-				<select formControlName="prerequisiteId">
-					<option value="">None</option>
-					<option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
-				</select>
-			</label>
+		<label>
+			<span class="meta-label">Prerequisite Node</span>
+			<select formControlName="prerequisiteId">
+				<option [value]="0">None</option>
+				<option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
+			</select>
+		</label>
 
-			<label>
-				<span class="meta-label">Following Node</span>
-				<select formControlName="followingNodeId">
-					<option value="">None</option>
-					<option *ngFor="let node of followingNodeOptions()" [value]="node.id">{{ node.title }}</option>
-				</select>
-			</label>
-
-			<label class="full-width">
-				<span class="meta-label">Node Beside (Same Level)</span>
-				<select formControlName="besideNodeId">
-					<option value="">Auto Position</option>
-					<option *ngFor="let node of nodes" [value]="node.id">{{ node.title }}</option>
-				</select>
-			</label>
+		<label>
+			<span class="meta-label">Following Node</span>
+			<select formControlName="followingNodeId">
+				<option [value]="0">None</option>
+				<option *ngFor="let node of followingNodeOptions()" [value]="node.id">{{ node.title }}</option>
+			</select>
+		</label>
 		</form>
 
 		<div class="modal-actions">

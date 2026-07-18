@@ -1,26 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { ApiService } from '../../../core/api.service';
+import { RoadmapDetailDto, RoadmapNodeDto } from '../../../core/api.models';
 import { RoadmapDetailUpdate } from './roadmap-detail-update/roadmap-detail-update';
 
 interface NodeItem {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  status: 'completed' | 'in-progress' | 'available' | 'locked';
+  status: 'completed' | 'in-progress' | 'available' | 'locked' | 'not-started';
   duration: string;
   mediaType: 'video' | 'book';
   resourceCount: number;
-  prerequisites: string[];
+  prerequisites: number[];
   pos: { x: number; y: number };
-}
-
-interface RoadmapDetail {
-  title: string;
-  description: string;
-  color: string;
-  nodes: NodeItem[];
 }
 
 @Component({
@@ -28,47 +24,145 @@ interface RoadmapDetail {
   templateUrl: './roadmap-detail-page.component.html',
   styleUrls: ['./roadmap-detail-page.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, RoadmapDetailUpdate]
+  imports: [CommonModule, FormsModule, RouterModule, RoadmapDetailUpdate]
 })
-export class RoadmapDetailPageComponent {
+export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   readonly NODE_W = 190;
   readonly NODE_H = 130;
-  readonly roadmapId: string;
-  readonly roadmapData: RoadmapDetail;
+  private readonly H_GAP = 60;
+  private readonly V_GAP = 80;
+  roadmapId = 0;
+  roadmapColor = '#3b82f6';
+  roadmapTitle = '';
+  roadmapDescription = '';
 
   nodes: NodeItem[] = [];
   selectedNode: NodeItem | null = null;
   updateModalOpen = false;
+  editModalOpen = false;
+  editingNode: NodeItem | null = null;
+  loading = true;
 
-  private readonly roadmapMap: Record<string, RoadmapDetail> = {
-    '1': {
-      title: 'Full Stack Web Development',
-      description: 'Complete hybrid roadmap with videos and books for frontend, backend, databases, and deployment.',
-      color: '#3b82f6',
-      nodes: [
-        { id: 'n1', title: 'HTML and CSS Basics', description: 'Foundation of web development', duration: '8h', mediaType: 'video', resourceCount: 5, status: 'completed', prerequisites: [], pos: { x: 370, y: 30 } },
-        { id: 'n2', title: 'JavaScript Fundamentals', description: 'Core JavaScript concepts', duration: '15h', mediaType: 'video', resourceCount: 10, status: 'completed', prerequisites: ['n1'], pos: { x: 120, y: 200 } },
-        { id: 'n3', title: 'Git and GitHub', description: 'Version control basics', duration: '5h', mediaType: 'video', resourceCount: 4, status: 'completed', prerequisites: ['n1'], pos: { x: 620, y: 200 } },
-        { id: 'r1', title: 'JavaScript Reading List', description: 'Essential books and articles', duration: '25h', mediaType: 'book', resourceCount: 4, status: 'in-progress', prerequisites: ['n2'], pos: { x: 370, y: 370 } },
-        { id: 'n4', title: 'React Basics', description: 'Modern frontend framework', duration: '20h', mediaType: 'video', resourceCount: 12, status: 'in-progress', prerequisites: ['n2'], pos: { x: 50, y: 540 } },
-        { id: 'n5', title: 'Node.js and Express', description: 'Backend with JavaScript', duration: '18h', mediaType: 'video', resourceCount: 11, status: 'available', prerequisites: ['n2'], pos: { x: 300, y: 540 } },
-        { id: 'n6', title: 'Database Design (SQL)', description: 'Relational databases', duration: '12h', mediaType: 'video', resourceCount: 8, status: 'available', prerequisites: ['n2'], pos: { x: 550, y: 540 } },
-        { id: 'r2', title: 'React Deep Dive', description: 'React books and articles', duration: '12h', mediaType: 'book', resourceCount: 3, status: 'available', prerequisites: ['n4'], pos: { x: 50, y: 710 } },
-        { id: 'n7', title: 'RESTful APIs', description: 'Building web APIs', duration: '10h', mediaType: 'video', resourceCount: 7, status: 'locked', prerequisites: ['n5', 'n6'], pos: { x: 420, y: 710 } },
-        { id: 'n9', title: 'React Advanced Patterns', description: 'Advanced React concepts', duration: '15h', mediaType: 'video', resourceCount: 9, status: 'locked', prerequisites: ['n4', 'r2'], pos: { x: 50, y: 880 } },
-        { id: 'n8', title: 'Authentication and Security', description: 'User auth and security', duration: '8h', mediaType: 'video', resourceCount: 6, status: 'locked', prerequisites: ['n7'], pos: { x: 420, y: 880 } },
-        { id: 'n10', title: 'Full Stack Integration', description: 'Connect frontend and backend', duration: '12h', mediaType: 'video', resourceCount: 8, status: 'locked', prerequisites: ['n8', 'n9'], pos: { x: 200, y: 1060 } },
-        { id: 'r3', title: 'System Design Reading', description: 'Architectural patterns', duration: '30h', mediaType: 'book', resourceCount: 3, status: 'locked', prerequisites: ['n10'], pos: { x: 450, y: 1060 } },
-        { id: 'n11', title: 'Testing and QA', description: 'Unit and integration tests', duration: '10h', mediaType: 'video', resourceCount: 7, status: 'locked', prerequisites: ['n10'], pos: { x: 80, y: 1230 } },
-        { id: 'n12', title: 'Deployment and DevOps', description: 'Deploy to production', duration: '8h', mediaType: 'video', resourceCount: 5, status: 'locked', prerequisites: ['n10'], pos: { x: 360, y: 1230 } }
-      ]
-    }
+  editForm = {
+    title: '',
+    description: '',
+    duration: '',
+    resourceCount: 1,
+    mediaType: 'video'
   };
 
-  constructor(route: ActivatedRoute) {
-    this.roadmapId = route.snapshot.params['id'] ?? '1';
-    this.roadmapData = this.roadmapMap[this.roadmapId] ?? this.roadmapMap['1'];
-    this.nodes = this.roadmapData.nodes.map((node) => ({ ...node }));
+  private routeSub?: Subscription;
+
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly api: ApiService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      const id = Number(params.get('id'));
+      if (id && id !== this.roadmapId) {
+        this.roadmapId = id;
+        this.loadRoadmap();
+      } else if (id) {
+        this.roadmapId = id;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
+
+  loadRoadmap(): void {
+    this.loading = true;
+    this.api.getRoadmap(this.roadmapId).subscribe({
+      next: (data) => {
+        this.roadmapTitle = data.name;
+        this.roadmapDescription = data.description ?? '';
+        this.roadmapColor = data.color;
+        this.nodes = data.nodes.map((n) => this.mapNode(n));
+        this.computeLayout();
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private mapNode(dto: RoadmapNodeDto): NodeItem {
+    return {
+      id: dto.id,
+      title: dto.title,
+      description: dto.description ?? '',
+      status: dto.status as NodeItem['status'],
+      duration: dto.duration ?? '0h',
+      mediaType: dto.mediaType as 'video' | 'book',
+      resourceCount: dto.resourceCount,
+      prerequisites: dto.prerequisites,
+      pos: { x: 0, y: 0 }
+    };
+  }
+
+  private computeLayout(): void {
+    if (!this.nodes.length) return;
+
+    const levelOf = new Map<number, number>();
+    const queue: NodeItem[] = [];
+
+    for (const node of this.nodes) {
+      if (node.prerequisites.length === 0) {
+        levelOf.set(node.id, 0);
+        queue.push(node);
+      }
+    }
+
+    while (queue.length) {
+      const current = queue.shift()!;
+      const currentLevel = levelOf.get(current.id)!;
+      for (const node of this.nodes) {
+        if (levelOf.has(node.id)) continue;
+        if (node.prerequisites.includes(current.id)) {
+          const allPrereqsLeveled = node.prerequisites.every((pid) => levelOf.has(pid));
+          if (allPrereqsLeveled) {
+            const maxPrereqLevel = Math.max(...node.prerequisites.map((pid) => levelOf.get(pid)!));
+            levelOf.set(node.id, maxPrereqLevel + 1);
+            queue.push(node);
+          }
+        }
+      }
+    }
+
+    for (const node of this.nodes) {
+      if (!levelOf.has(node.id)) {
+        levelOf.set(node.id, 0);
+      }
+    }
+
+    const levels = new Map<number, NodeItem[]>();
+    for (const node of this.nodes) {
+      const lvl = levelOf.get(node.id)!;
+      if (!levels.has(lvl)) levels.set(lvl, []);
+      levels.get(lvl)!.push(node);
+    }
+
+    const maxLevelWidth = this.nodes.length * this.NODE_W + (this.nodes.length - 1) * this.H_GAP;
+
+    for (const [lvl, levelNodes] of levels) {
+      const levelWidth = levelNodes.length * this.NODE_W + (levelNodes.length - 1) * this.H_GAP;
+      const startX = (maxLevelWidth - levelWidth) / 2;
+
+      for (let i = 0; i < levelNodes.length; i++) {
+        levelNodes[i].pos = {
+          x: startX + i * (this.NODE_W + this.H_GAP),
+          y: lvl * (this.NODE_H + this.V_GAP)
+        };
+      }
+    }
   }
 
   get completedCount(): number {
@@ -80,7 +174,7 @@ export class RoadmapDetailPageComponent {
   }
 
   get progress(): number {
-    return Math.round((this.completedCount / this.nodes.length) * 100);
+    return this.nodes.length > 0 ? Math.round((this.completedCount / this.nodes.length) * 100) : 0;
   }
 
   get canvasWidth(): number {
@@ -101,7 +195,6 @@ export class RoadmapDetailPageComponent {
           if (!from) {
             return null;
           }
-
           return { from, to: node };
         })
         .filter((item): item is { from: NodeItem; to: NodeItem } => !!item)
@@ -109,10 +202,6 @@ export class RoadmapDetailPageComponent {
   }
 
   openNode(node: NodeItem): void {
-    if (node.status === 'locked') {
-      return;
-    }
-
     this.selectedNode = node;
   }
 
@@ -120,29 +209,67 @@ export class RoadmapDetailPageComponent {
     this.selectedNode = null;
   }
 
-  startNode(id: string): void {
-    this.nodes = this.nodes.map((node) => (node.id === id ? { ...node, status: 'in-progress' } : node));
-    this.selectedNode = this.nodes.find((node) => node.id === id) ?? null;
+  startNode(id: number): void {
+    this.api.updateNodeStatus(this.roadmapId, id, { status: 'in-progress' }).subscribe({
+      next: () => {
+        this.loadRoadmap();
+        this.selectedNode = null;
+      }
+    });
   }
 
-  completeNode(id: string): void {
-    const updatedNodes: NodeItem[] = this.nodes.map((node) =>
-      node.id === id ? { ...node, status: 'completed' as const } : node
-    );
-
-    this.nodes = updatedNodes.map((node): NodeItem => {
-      if (node.status !== 'locked') {
-        return node;
+  completeNode(id: number): void {
+    this.api.updateNodeStatus(this.roadmapId, id, { status: 'completed' }).subscribe({
+      next: () => {
+        this.loadRoadmap();
+        this.selectedNode = null;
       }
-
-      const isUnlocked = node.prerequisites.every((preId) =>
-        updatedNodes.some((item) => item.id === preId && item.status === 'completed')
-      );
-
-      return isUnlocked ? { ...node, status: 'available' as const } : node;
     });
+  }
 
-    this.selectedNode = this.nodes.find((node) => node.id === id) ?? null;
+  openEditModal(node: NodeItem): void {
+    this.editingNode = node;
+    this.editForm = {
+      title: node.title,
+      description: node.description,
+      duration: node.duration,
+      resourceCount: node.resourceCount,
+      mediaType: node.mediaType
+    };
+    this.editModalOpen = true;
+  }
+
+  closeEditModal(): void {
+    this.editModalOpen = false;
+    this.editingNode = null;
+  }
+
+  saveNodeEdit(): void {
+    if (!this.editingNode) return;
+
+    this.api.updateRoadmapNode(this.roadmapId, this.editingNode.id, {
+      title: this.editForm.title.trim(),
+      description: this.editForm.description.trim(),
+      duration: this.editForm.duration.trim(),
+      mediaType: this.editForm.mediaType,
+      resourceCount: this.editForm.resourceCount
+    }).subscribe({
+      next: () => {
+        this.closeEditModal();
+        this.loadRoadmap();
+      }
+    });
+  }
+
+  deleteNode(id: number): void {
+    if (!confirm('Delete this node?')) return;
+
+    this.api.deleteRoadmapNode(this.roadmapId, id).subscribe({
+      next: () => {
+        this.closeNodeModal();
+        this.loadRoadmap();
+      }
+    });
   }
 
   statusClass(node: NodeItem): string {
@@ -151,8 +278,8 @@ export class RoadmapDetailPageComponent {
 
   contentLabel(node: NodeItem): string {
     return node.mediaType === 'book'
-      ? `📖 ${node.resourceCount} books/articles`
-      : `🎬 ${node.resourceCount} videos`;
+      ? `${node.resourceCount} books/articles`
+      : `${node.resourceCount} videos`;
   }
 
   nodeKindLabel(node: NodeItem): string {
@@ -164,18 +291,9 @@ export class RoadmapDetailPageComponent {
   }
 
   statusIcon(status: NodeItem['status']): string {
-    if (status === 'completed') {
-      return '✅';
-    }
-
-    if (status === 'in-progress') {
-      return '▶️';
-    }
-
-    if (status === 'available') {
-      return '⭕';
-    }
-
+    if (status === 'completed') return '✅';
+    if (status === 'in-progress') return '▶️';
+    if (status === 'available') return '⭕';
     return '🔒';
   }
 
@@ -184,10 +302,8 @@ export class RoadmapDetailPageComponent {
     const y1 = connection.from.pos.y + this.NODE_H;
     const x2 = connection.to.pos.x + this.NODE_W / 2;
     const y2 = connection.to.pos.y;
-
     const c1y = y1 + (y2 - y1) * 0.5;
     const c2y = y2 - (y2 - y1) * 0.5;
-
     return `M${x1},${y1} C${x1},${c1y} ${x2},${c2y} ${x2},${y2}`;
   }
 
@@ -203,7 +319,7 @@ export class RoadmapDetailPageComponent {
     return connection.to.status === 'locked' ? '#cbd5e1' : '#94a3b8';
   }
 
-  prerequisiteTitle(id: string): string {
+  prerequisiteTitle(id: number): string {
     return this.nodes.find((node) => node.id === id)?.title ?? 'Unknown';
   }
 
@@ -215,8 +331,8 @@ export class RoadmapDetailPageComponent {
     this.updateModalOpen = false;
   }
 
-  applyUpdatedNodes(nodes: NodeItem[]): void {
-    this.nodes = nodes;
+  applyUpdatedNodes(): void {
     this.updateModalOpen = false;
+    this.loadRoadmap();
   }
 }

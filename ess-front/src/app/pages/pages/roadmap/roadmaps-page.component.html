@@ -49,10 +49,10 @@
           <span class="icon">{{ roadmap.icon }}</span>
           <span class="badge">{{ roadmap.category }}</span>
         </div>
-        <a [routerLink]="['/roadmaps', roadmap.id]" class="title">{{ roadmap.title }}</a>
+        <a [routerLink]="['/roadmaps', roadmap.id]" class="title">{{ roadmap.name }}</a>
         <p class="desc">{{ roadmap.description }}</p>
 
-        <p class="muted">{{ roadmap.totalCourses }} courses • {{ roadmap.estimatedHours }}h</p>
+        <p class="muted">{{ roadmap.totalNodes }} nodes • {{ roadmap.estimatedHours }}h</p>
 
         <div class="tag-row">
           <span class="tag" *ngFor="let tag of roadmap.tags">{{ tag }}</span>
@@ -60,7 +60,7 @@
 
         <div class="progress-head">
           <span>Progress</span>
-          <span>{{ roadmap.completedCourses }}/{{ roadmap.totalCourses }} · {{ progress(roadmap) }}%</span>
+          <span>{{ roadmap.completedNodes }}/{{ roadmap.totalNodes }} · {{ progress(roadmap) }}%</span>
         </div>
         <div class="track">
           <div class="fill" [style.width.%]="progress(roadmap)" [style.background]="roadmap.color"></div>
