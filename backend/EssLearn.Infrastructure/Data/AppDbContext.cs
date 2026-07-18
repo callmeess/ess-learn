@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<RoadMap> RoadMaps => Set<RoadMap>();
     public DbSet<RoadmapNode> RoadmapNodes => Set<RoadmapNode>();
     public DbSet<RoadmapNodePrerequisite> RoadmapNodePrerequisites => Set<RoadmapNodePrerequisite>();
+    public DbSet<StorageIntegrity> StorageIntegrities => Set<StorageIntegrity>();
+    public DbSet<BlobStorageLog> BlobStorageLogs => Set<BlobStorageLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,27 +66,56 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DownloadedVideo>(e =>
         {
             e.HasKey(dv => dv.Id);
-            e.Property(dv => dv.FilePath).HasMaxLength(1000).IsRequired();
             e.Property(dv => dv.Quality).HasMaxLength(50).IsRequired();
             e.Property(dv => dv.FormatId).HasMaxLength(50).IsRequired();
             e.Property(dv => dv.Container).HasMaxLength(20).IsRequired();
-            e.HasIndex(dv => dv.VideoId).IsUnique();
-            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.VideoId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(dv => dv.BlobPath).HasMaxLength(1000);
+            e.Property(dv => dv.BlobBucket).HasMaxLength(100).IsRequired();
+            e.Property(dv => dv.Sha256Hash).HasMaxLength(64);
+            e.HasIndex(dv => dv.PublicVideoId).IsUnique();
+            e.HasIndex(dv => dv.BlobPath).IsUnique(false);
+            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.PublicVideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(dv => dv.StorageIntegrity).WithOne(si => si.DownloadedVideo).HasForeignKey<StorageIntegrity>(si => si.DownloadedVideoId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<StorageIntegrity>(e =>
+        {
+            e.HasKey(si => si.Id);
+            e.Property(si => si.BlobPath).HasMaxLength(1000).IsRequired();
+            e.Property(si => si.BlobBucket).HasMaxLength(100).IsRequired();
+            e.Property(si => si.Sha256Hash).HasMaxLength(64).IsRequired();
+            e.HasIndex(si => new { si.BlobBucket, si.BlobPath }).IsUnique();
+            e.HasIndex(si => si.IsValid);
+            e.HasIndex(si => si.CheckedAt);
+        });
+
+        modelBuilder.Entity<BlobStorageLog>(e =>
+        {
+            e.HasKey(bl => bl.Id);
+            e.Property(bl => bl.Operation).HasMaxLength(50).IsRequired();
+            e.Property(bl => bl.BlobPath).HasMaxLength(1000).IsRequired();
+            e.Property(bl => bl.BlobBucket).HasMaxLength(100).IsRequired();
+            e.HasIndex(bl => new { bl.BlobBucket, bl.Operation, bl.CreatedAt }).IsUnique(false);
+            e.HasIndex(bl => bl.Success);
+            e.HasIndex(bl => bl.CreatedAt);
         });
 
         modelBuilder.Entity<RoadMap>(e =>
         {
+            e.ToTable("Roadmaps");
             e.HasKey(r => r.Id);
-            e.Property(r => r.Name).HasMaxLength(300).IsRequired();
+            e.Property(r => r.Name).HasMaxLength(500).IsRequired();
             e.Property(r => r.Description).HasMaxLength(1000);
             e.Property(r => r.Category).HasMaxLength(100).IsRequired();
             e.Property(r => r.Color).HasMaxLength(20).IsRequired();
-            e.Property(r => r.Icon).HasMaxLength(10);
+            e.Property(r => r.Icon).HasMaxLength(500);
             e.Property(r => r.Tags).HasMaxLength(500);
+            e.HasMany(r => r.Nodes).WithOne(rn => rn.Roadmap).HasForeignKey(rn => rn.RoadmapId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RoadmapNode>(e =>
         {
+            e.ToTable("RoadmapNodes");
             e.HasKey(n => n.Id);
             e.Property(n => n.Title).HasMaxLength(300).IsRequired();
             e.Property(n => n.Description).HasMaxLength(500);
@@ -95,6 +126,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<RoadmapNodePrerequisite>(e =>
         {
+            e.ToTable("RoadmapNodePrerequisites");
             e.HasKey(rp => new { rp.NodeId, rp.PrerequisiteId });
             e.HasOne(rp => rp.Node).WithMany(n => n.PrerequisitesOf).HasForeignKey(rp => rp.NodeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(rp => rp.Prerequisite).WithMany(n => n.DependentsOf).HasForeignKey(rp => rp.PrerequisiteId).OnDelete(DeleteBehavior.Cascade);

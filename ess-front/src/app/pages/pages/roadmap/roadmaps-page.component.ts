@@ -26,13 +26,14 @@ export class RoadmapsPageComponent implements OnInit {
   roadmaps: RoadmapListItemDto[] = [];
   loading = true;
 
-  currentSearch = '';
+  searchQuery = '';
+  sortBy: 'recent' | 'name' = 'recent';
   currentFilter = 'all';
-  createModalOpen = false;
+  showCreateForm = false;
   toastMessage = '';
 
   newRoadmap = {
-    title: '',
+    name: '',
     category: '',
     description: '',
     icon: '📚',
@@ -78,7 +79,7 @@ export class RoadmapsPageComponent implements OnInit {
   }
 
   get filteredRoadmaps(): RoadmapListItemDto[] {
-    const q = this.currentSearch.trim().toLowerCase();
+    const q = this.searchQuery.trim().toLowerCase();
 
     return this.roadmaps.filter((roadmap) => {
       const categoryMatch = this.currentFilter === 'all' || roadmap.category === this.currentFilter;
@@ -92,22 +93,30 @@ export class RoadmapsPageComponent implements OnInit {
     });
   }
 
-  openCreateModal(): void {
-    this.createModalOpen = true;
+  getFilteredRoadmaps(_unused?: unknown[]): RoadmapListItemDto[] {
+    return this.filteredRoadmaps;
   }
 
-  closeCreateModal(): void {
-    this.createModalOpen = false;
+  openCreateForm(): void {
+    this.showCreateForm = true;
+  }
+
+  closeCreateForm(): void {
+    this.showCreateForm = false;
+    this.resetForm();
+  }
+
+  resetForm(): void {
+    this.newRoadmap = { name: '', category: '', description: '', icon: '📚', color: '#3b82f6' };
   }
 
   createRoadmap(): void {
-    if (!this.newRoadmap.title.trim()) {
-      this.showToast('Roadmap title is required');
+    if (!this.newRoadmap.name.trim()) {
       return;
     }
 
     this.api.createRoadmap({
-      name: this.newRoadmap.title.trim(),
+      name: this.newRoadmap.name.trim(),
       description: this.newRoadmap.description.trim() || 'Custom learning path roadmap.',
       category: this.newRoadmap.category.trim() || 'Custom',
       color: this.newRoadmap.color,
@@ -116,8 +125,8 @@ export class RoadmapsPageComponent implements OnInit {
     }).subscribe({
       next: (created) => {
         this.roadmaps = [created, ...this.roadmaps];
-        this.newRoadmap = { title: '', category: '', description: '', icon: '📚', color: '#3b82f6' };
-        this.closeCreateModal();
+        this.resetForm();
+        this.closeCreateForm();
         this.showToast('Roadmap created!');
       },
       error: () => {

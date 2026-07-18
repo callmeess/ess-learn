@@ -7,8 +7,10 @@ public interface IRoadmapService
     Task<List<RoadmapListItemDto>> GetAllAsync();
     Task<RoadmapDetailDto?> GetByIdAsync(int id);
     Task<RoadmapListItemDto> CreateAsync(CreateRoadmapDto dto);
+    Task<RoadmapListItemDto?> UpdateAsync(int id, UpdateRoadmapDto dto);
     Task DeleteAsync(int id);
     Task<RoadmapNodeDto> AddNodeAsync(int roadmapId, CreateRoadmapNodeDto dto);
+    Task<RoadmapNodeDto> AddPlaylistToRoadmapAsync(int roadmapId, AddPlaylistToRoadmapDto dto);
     Task<RoadmapNodeDto?> UpdateNodeStatusAsync(int roadmapId, int nodeId, UpdateNodeStatusDto dto);
     Task<RoadmapNodeDto?> UpdateNodeAsync(int roadmapId, int nodeId, UpdateRoadmapNodeDto dto);
     Task DeleteNodeAsync(int roadmapId, int nodeId);

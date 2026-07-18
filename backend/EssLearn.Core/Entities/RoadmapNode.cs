@@ -18,6 +18,7 @@ public class RoadmapNode
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public RoadMap Roadmap { get; set; } = null!;
+    public int? materialId { get; set; }
 
     public ICollection<RoadmapNodePrerequisite> PrerequisitesOf { get; set; } = [];
     public ICollection<RoadmapNodePrerequisite> DependentsOf { get; set; } = [];

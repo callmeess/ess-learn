@@ -30,7 +30,12 @@
               stroke-width="2"
               [attr.stroke-dasharray]="connection.to.status === 'locked' ? '5 5' : '4 4'"
             ></path>
-            <circle [attr.cx]="toNodeX(connection)" [attr.cy]="toNodeY(connection)" r="4" [attr.fill]="connectionColor(connection)"></circle>
+            <circle
+              [attr.cx]="toNodeX(connection)"
+              [attr.cy]="toNodeY(connection)"
+              r="4"
+              [attr.fill]="connectionColor(connection)"
+            ></circle>
           </g>
         </svg>
 
@@ -88,7 +93,13 @@
       </div>
       <div>
         <p class="meta-label">Content</p>
-        <p class="meta-value">{{ node.mediaType === 'book' ? node.resourceCount + ' books/articles' : node.resourceCount + ' videos' }}</p>
+        <p class="meta-value">
+          {{
+            node.mediaType === 'book'
+              ? node.resourceCount + ' books/articles'
+              : node.resourceCount + ' videos'
+          }}
+        </p>
       </div>
       <div>
         <p class="meta-label">Type</p>
@@ -102,7 +113,9 @@
 
     <div *ngIf="node.prerequisites.length" class="prereqs">
       <p class="meta-label">Prerequisites</p>
-      <p class="prereq-item" *ngFor="let prereq of node.prerequisites">{{ prerequisiteTitle(prereq) }}</p>
+      <p class="prereq-item" *ngFor="let prereq of node.prerequisites">
+        {{ prerequisiteTitle(prereq) }}
+      </p>
     </div>
 
     <div class="modal-actions">

@@ -68,3 +68,17 @@ public record UpdateRoadmapNodeDto(
     string? MediaType,
     int? ResourceCount
 );
+
+public record UpdateRoadmapDto(
+    string? Name,
+    string? Description,
+    string? Category,
+    string? Color,
+    string? Icon,
+    string[]? Tags
+);
+
+public record AddPlaylistToRoadmapDto(
+    int PlaylistId,
+    int? AfterNodeId
+);

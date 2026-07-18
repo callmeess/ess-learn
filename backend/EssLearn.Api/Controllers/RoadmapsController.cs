@@ -37,6 +37,28 @@ public class RoadmapsController(IRoadmapService roadmapService) : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("{id}")]
+    public async Task<ActionResult<RoadmapListItemDto>> Update(int id, UpdateRoadmapDto dto)
+    {
+        var roadmap = await roadmapService.UpdateAsync(id, dto);
+        if (roadmap is null) return NotFound();
+        return Ok(roadmap);
+    }
+
+    [HttpPost("{id}/playlists")]
+    public async Task<ActionResult<RoadmapNodeDto>> AddPlaylistToRoadmap(int id, AddPlaylistToRoadmapDto dto)
+    {
+        try
+        {
+            var node = await roadmapService.AddPlaylistToRoadmapAsync(id, dto);
+            return Ok(node);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPost("{id}/nodes")]
     public async Task<ActionResult<RoadmapNodeDto>> AddNode(int id, CreateRoadmapNodeDto dto)
     {

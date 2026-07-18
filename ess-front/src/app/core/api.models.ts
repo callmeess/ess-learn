@@ -221,10 +221,24 @@ export interface UpdateNodeStatusDto {
   status: string;
 }
 
+export interface UpdateRoadmapDto {
+  name?: string;
+  description?: string;
+  category?: string;
+  color?: string;
+  icon?: string;
+  tags?: string[];
+}
+
 export interface UpdateRoadmapNodeDto {
   title?: string;
   description?: string;
   duration?: string;
   mediaType?: string;
   resourceCount?: number;
+}
+
+export interface AddPlaylistToRoadmapDto {
+  playlistId: number;
+  afterNodeId?: number;
 }

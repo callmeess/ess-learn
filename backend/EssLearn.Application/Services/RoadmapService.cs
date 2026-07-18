@@ -63,6 +63,75 @@ public class RoadmapService : IRoadmapService
         }
     }
 
+    public async Task<RoadmapListItemDto?> UpdateAsync(int id, UpdateRoadmapDto dto)
+    {
+        var roadmap = await _dbContext.RoadMaps
+            .Include(r => r.Nodes).ThenInclude(n => n.PrerequisitesOf)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (roadmap == null) return null;
+
+        if (dto.Name != null) roadmap.Name = dto.Name;
+        if (dto.Description != null) roadmap.Description = dto.Description;
+        if (dto.Category != null) roadmap.Category = dto.Category;
+        if (dto.Color != null) roadmap.Color = dto.Color;
+        if (dto.Icon != null) roadmap.Icon = dto.Icon;
+        if (dto.Tags != null) roadmap.Tags = string.Join(",", dto.Tags);
+        roadmap.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return MapListItem(roadmap);
+    }
+
+    public async Task<RoadmapNodeDto> AddPlaylistToRoadmapAsync(int roadmapId, AddPlaylistToRoadmapDto dto)
+    {
+        var roadmap = await _dbContext.RoadMaps
+            .Include(r => r.Nodes).ThenInclude(n => n.PrerequisitesOf)
+            .FirstOrDefaultAsync(r => r.Id == roadmapId)
+            ?? throw new InvalidOperationException("Roadmap not found");
+
+        var playlist = await _dbContext.Playlists.FindAsync(dto.PlaylistId)
+            ?? throw new InvalidOperationException("Playlist not found");
+
+        var node = new RoadmapNode
+        {
+            RoadmapId = roadmapId,
+            Title = playlist.Title,
+            Description = playlist.Description,
+            MediaType = RoadmapMediaType.Video,
+            ResourceCount = playlist.TotalVideos,
+            Status = RoadmapNodeStatus.NotStarted,
+            PositionX = 0,
+            PositionY = 0
+        };
+
+        _dbContext.RoadmapNodes.Add(node);
+        await _dbContext.SaveChangesAsync();
+
+        if (dto.AfterNodeId.HasValue)
+        {
+            var exists = await _dbContext.RoadmapNodePrerequisites
+                .AnyAsync(p => p.NodeId == node.Id && p.PrerequisiteId == dto.AfterNodeId.Value);
+
+            if (!exists)
+            {
+                _dbContext.RoadmapNodePrerequisites.Add(new RoadmapNodePrerequisite
+                {
+                    NodeId = node.Id,
+                    PrerequisiteId = dto.AfterNodeId.Value
+                });
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        var reloaded = await _dbContext.RoadmapNodes
+            .Include(n => n.PrerequisitesOf)
+            .FirstAsync(n => n.Id == node.Id);
+
+        return MapNode(reloaded);
+    }
+
     public async Task<RoadmapNodeDto> AddNodeAsync(int roadmapId, CreateRoadmapNodeDto dto)
     {
         var roadmap = await _dbContext.RoadMaps

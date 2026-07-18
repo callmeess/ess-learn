@@ -178,13 +178,15 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   }
 
   get canvasWidth(): number {
-    const maxX = this.nodes.reduce((acc, node) => Math.max(acc, node.pos.x + this.NODE_W), 800);
-    return maxX + 40;
+    if (!this.nodes.length) return 600;
+    const maxX = Math.max(...this.nodes.map((n) => n.pos.x + this.NODE_W));
+    return maxX + this.H_GAP;
   }
 
   get canvasHeight(): number {
-    const maxY = this.nodes.reduce((acc, node) => Math.max(acc, node.pos.y + this.NODE_H), 1000);
-    return maxY + 40;
+    if (!this.nodes.length) return 400;
+    const maxY = Math.max(...this.nodes.map((n) => n.pos.y + this.NODE_H));
+    return maxY + this.V_GAP;
   }
 
   get connections(): Array<{ from: NodeItem; to: NodeItem }> {
@@ -286,7 +288,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
     return node.mediaType === 'book' ? 'Book Node' : 'Video Node';
   }
 
-  statusLabel(status: NodeItem['status']): string {
+  statusLabel(status: string): string {
     return status.replace('-', ' ');
   }
 
