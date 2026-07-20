@@ -97,7 +97,7 @@ public static class ServiceCollectionExtensions
         // YouTube API Service
         var ytApiKey = config["YouTube:ApiKey"]
             ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
-        services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
+        // services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
 
         services.AddScoped<IVideoDownloadService, VideoDownloadService>();
         services.AddScoped<IYtDlpOrchestrator, YtDlpOrchestrator>();

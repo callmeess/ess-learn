@@ -11,6 +11,7 @@ public class Video
     public string? ThumbnailUrl { get; set; }
     public int DurationSeconds { get; set; }
     public int Position { get; set; }
+    public string? DownloadedVideoId { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

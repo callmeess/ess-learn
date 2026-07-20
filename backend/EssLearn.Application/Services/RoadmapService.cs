@@ -199,7 +199,9 @@ public class RoadmapService : IRoadmapService
     {
         var node = await _dbContext.RoadmapNodes
             .Include(n => n.PrerequisitesOf)
-            .Include(n => n.DependentsOf).ThenInclude(d => d.Node).ThenInclude(n => n.PrerequisitesOf)
+            .Include(n => n.DependentsOf)
+            .ThenInclude(d => d.Node)
+            .ThenInclude(n => n.PrerequisitesOf)
             .FirstOrDefaultAsync(n => n.Id == nodeId && n.RoadmapId == roadmapId);
 
         if (node == null) return null;

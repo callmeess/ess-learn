@@ -23,4 +23,22 @@ public class ImportController(IImportService importService) : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+
+    [HttpPost("video")]
+    public async Task<ActionResult<ImportResultDto>> ImportVideo(ImportVideoDto dto)
+    {
+        try
+        {
+            var result = await importService.ImportVideoAsync(dto);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message.Contains("already been imported"))
+                return Conflict(new { message = ex.Message });
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

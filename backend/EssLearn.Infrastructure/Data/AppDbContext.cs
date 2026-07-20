@@ -52,6 +52,7 @@ public class AppDbContext : DbContext
             e.HasKey(v => v.Id);
             e.Property(v => v.Title).HasMaxLength(500).IsRequired();
             e.Property(v => v.YoutubeVideoId).HasMaxLength(20);
+            e.Property(v => v.DownloadedVideoId).HasMaxLength(255);
             e.HasIndex(v => new { v.PlaylistId, v.Position });
             e.HasOne(v => v.Playlist).WithMany(p => p.Videos).HasForeignKey(v => v.PlaylistId).OnDelete(DeleteBehavior.Cascade);
         });

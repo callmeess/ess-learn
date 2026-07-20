@@ -22,10 +22,10 @@ public class YtDlpService : IYtDlpService
         _logger = logger;
 
         // Get paths from configuration
-        _binaryPath = config["YtDlp:BinaryPath"]
-            ?? throw new InvalidOperationException("YtDlp:BinaryPath is not configured");
+        _binaryPath = config["yt-dlp:ExecutablePath"]
+            ?? throw new InvalidOperationException("yt-dlp:ExecutablePath is not configured");
 
-        _downloadPath = config["YtDlp:DownloadPath"]
+        _downloadPath = config["yt-dlp:DownloadPath"]
             ?? Path.Combine(Path.GetTempPath(), "yt-dlp-downloads");
 
         // Ensure download directory exists

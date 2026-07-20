@@ -1,8 +1,6 @@
 namespace EssLearn.Application.Dtos.BlobStorage;
 
-/// <summary>
-/// Result of a blob storage operation.
-/// </summary>
+
 public class BlobStorageResult
 {
     public bool Success { get; set; }
@@ -31,9 +29,7 @@ public class BlobStorageResult
         };
 }
 
-/// <summary>
-/// Metadata about a blob in storage.
-/// </summary>
+
 public class BlobStorageMetadata
 {
     public string Name { get; set; } = string.Empty;           // Object name
@@ -44,9 +40,7 @@ public class BlobStorageMetadata
     public Dictionary<string, string>? Tags { get; set; }       // Custom tags
 }
 
-/// <summary>
-/// Metadata for blobs returned from list operations.
-/// </summary>
+
 public class BlobMetadata
 {
     public string ObjectPath { get; set; } = string.Empty;
@@ -56,9 +50,6 @@ public class BlobMetadata
     public bool IsDirectory { get; set; }
 }
 
-/// <summary>
-/// Configuration for blob storage service.
-/// </summary>
 public class BlobStorageOptions
 {
     public string Endpoint { get; set; } = "localhost:9000";
@@ -71,9 +62,7 @@ public class BlobStorageOptions
     public BlobStorageTimeouts Timeouts { get; set; } = new();
 }
 
-/// <summary>
-/// Bucket names configuration.
-/// </summary>
+
 public class BlobStorageBuckets
 {
     public string Videos { get; set; } = "esslearn-videos";
@@ -82,9 +71,7 @@ public class BlobStorageBuckets
     public string Temp { get; set; } = "esslearn-temp";
 }
 
-/// <summary>
-/// Timeout configuration for blob operations.
-/// </summary>
+
 public class BlobStorageTimeouts
 {
     public int UploadTimeoutSeconds { get; set; } = 3600;       // 1 hour
