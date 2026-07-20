@@ -27,14 +27,14 @@ public class DatabaseSeederService
     /// <summary>
     /// Seeds the database with dummy data from SQL file.
     /// Call this during application startup in development environment.
-    /// Note: Database migrations are now handled by DatabaseMigrator (SQL-based).
+    /// Note: Database migrations are handled by EF Core (Database.MigrateAsync).
     /// </summary>
     public async Task SeedDatabaseAsync()
     {
         try
         {
-            // Database migrations are now handled by DatabaseMigrator in Program.cs
-            _logger.LogInformation("Database migrations are handled by SQL-based DatabaseMigrator.");
+            // Database migrations are handled by EF Core in Program.cs
+            _logger.LogInformation("Database migrations are handled by EF Core.");
 
             // Check if data already exists (simple check)
             var existingFields = await _context.LearningFields.CountAsync();
