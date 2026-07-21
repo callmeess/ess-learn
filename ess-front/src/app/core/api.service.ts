@@ -1,22 +1,32 @@
-import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from './api.config';
 import {
+  AddPlaylistToRoadmapDto,
   ChannelDto,
   CreateFieldDto,
+  CreateRoadmapDto,
+  CreateRoadmapNodeDto,
   DashboardDto,
   DownloadStatusDto,
+  DownloadedVideoDto,
   FieldDto,
   PlaylistDetailDto,
   PlaylistDto,
   ProgressDto,
+  RoadmapDetailDto,
+  RoadmapListItemDto,
+  RoadmapNodeDto,
   UpdateFieldDto,
+  UpdateNodeStatusDto,
+  UpdateRoadmapDto,
+  UpdateRoadmapNodeDto,
   VideoDto,
   VideoFormatDto,
   VideoListItemDto,
   VideoStatus
 } from './api.models';
-import { API_BASE_URL } from './api.config';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -103,11 +113,56 @@ export class ApiService {
     return this.http.get<VideoFormatDto[]>(`${this.baseUrl}/api/videos/${videoId}/download/formats`);
   }
 
-  downloadVideo(videoId: number, formatId: string, quality: string): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/api/videos/${videoId}/download`, { formatId, quality });
+  downloadVideo(videoId: number, formatId: string, quality: string): Observable<DownloadedVideoDto> {
+    return this.http.post<DownloadedVideoDto>(`${this.baseUrl}/api/videos/${videoId}/download`, { formatId, quality });
+  }
+
+  deleteDownload(videoId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/videos/${videoId}/download`);
   }
 
   getDownloadStatus(videoId: number): Observable<DownloadStatusDto> {
     return this.http.get<DownloadStatusDto>(`${this.baseUrl}/api/videos/${videoId}/download/status`);
+  }
+
+  // Roadmaps
+  getRoadmaps(): Observable<RoadmapListItemDto[]> {
+    return this.http.get<RoadmapListItemDto[]>(`${this.baseUrl}/api/roadmaps`);
+  }
+
+  getRoadmap(id: number): Observable<RoadmapDetailDto> {
+    return this.http.get<RoadmapDetailDto>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  createRoadmap(dto: CreateRoadmapDto): Observable<RoadmapListItemDto> {
+    return this.http.post<RoadmapListItemDto>(`${this.baseUrl}/api/roadmaps`, dto);
+  }
+
+  updateRoadmap(id: number, dto: UpdateRoadmapDto): Observable<RoadmapListItemDto> {
+    return this.http.put<RoadmapListItemDto>(`${this.baseUrl}/api/roadmaps/${id}`, dto);
+  }
+
+  deleteRoadmap(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${id}`);
+  }
+
+  addPlaylistToRoadmap(roadmapId: number, dto: AddPlaylistToRoadmapDto): Observable<RoadmapNodeDto> {
+    return this.http.post<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/playlists`, dto);
+  }
+
+  addRoadmapNode(roadmapId: number, dto: CreateRoadmapNodeDto): Observable<RoadmapNodeDto> {
+    return this.http.post<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes`, dto);
+  }
+
+  updateNodeStatus(roadmapId: number, nodeId: number, dto: UpdateNodeStatusDto): Observable<RoadmapNodeDto> {
+    return this.http.put<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}/status`, dto);
+  }
+
+  updateRoadmapNode(roadmapId: number, nodeId: number, dto: UpdateRoadmapNodeDto): Observable<RoadmapNodeDto> {
+    return this.http.put<RoadmapNodeDto>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}`, dto);
+  }
+
+  deleteRoadmapNode(roadmapId: number, nodeId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}`);
   }
 }

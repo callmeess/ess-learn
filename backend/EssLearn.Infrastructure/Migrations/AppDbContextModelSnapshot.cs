@@ -22,6 +22,52 @@ namespace EssLearn.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("EssLearn.Core.Entities.BlobStorageLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlobBucket")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BlobPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Success");
+
+                    b.HasIndex("BlobBucket", "Operation", "CreatedAt");
+
+                    b.ToTable("BlobStorageLogs");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Channel", b =>
                 {
                     b.Property<int>("Id")
@@ -74,6 +120,18 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Property<string>("AudioCodec")
                         .HasColumnType("text");
 
+                    b.Property<string>("BlobBucket")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BlobPath")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("BlobStoredAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Container")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -81,11 +139,6 @@ namespace EssLearn.Infrastructure.Migrations
 
                     b.Property<DateTime>("DownloadedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
 
                     b.Property<long>("FileSizeBytes")
                         .HasColumnType("bigint");
@@ -98,10 +151,17 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Property<int?>("Height")
                         .HasColumnType("integer");
 
+                    b.Property<int>("PublicVideoId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Quality")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Sha256Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -109,21 +169,14 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Property<string>("VideoCodec")
                         .HasColumnType("text");
 
-                    b.Property<int>("VideoId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("VideoId1")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("Width")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VideoId")
-                        .IsUnique();
+                    b.HasIndex("BlobPath");
 
-                    b.HasIndex("VideoId1")
+                    b.HasIndex("PublicVideoId")
                         .IsUnique();
 
                     b.ToTable("DownloadedVideos");
@@ -224,6 +277,178 @@ namespace EssLearn.Infrastructure.Migrations
                     b.ToTable("Playlists");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadMap", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roadmaps", (string)null);
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Duration")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PositionX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PositionY")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResourceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoadmapId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("materialId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoadmapId");
+
+                    b.ToTable("RoadmapNodes", (string)null);
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNodePrerequisite", b =>
+                {
+                    b.Property<int>("NodeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PrerequisiteId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("NodeId", "PrerequisiteId");
+
+                    b.HasIndex("PrerequisiteId");
+
+                    b.ToTable("RoadmapNodePrerequisites", (string)null);
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.StorageIntegrity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("ActualSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("BlobBucket")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BlobPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DownloadedVideoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<long>("ExpectedSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsValid")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Sha256Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckedAt");
+
+                    b.HasIndex("DownloadedVideoId")
+                        .IsUnique();
+
+                    b.HasIndex("IsValid");
+
+                    b.HasIndex("BlobBucket", "BlobPath")
+                        .IsUnique();
+
+                    b.ToTable("StorageIntegrities");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
@@ -237,6 +462,13 @@ namespace EssLearn.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<string>("DownloadedVideoId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("DownloadedVideoId1")
+                        .HasColumnType("integer");
 
                     b.Property<int>("DurationSeconds")
                         .HasColumnType("integer");
@@ -269,6 +501,8 @@ namespace EssLearn.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DownloadedVideoId1");
 
                     b.HasIndex("PlaylistId", "Position");
 
@@ -316,13 +550,9 @@ namespace EssLearn.Infrastructure.Migrations
                 {
                     b.HasOne("EssLearn.Core.Entities.Video", "Video")
                         .WithOne()
-                        .HasForeignKey("EssLearn.Core.Entities.DownloadedVideo", "VideoId")
+                        .HasForeignKey("EssLearn.Core.Entities.DownloadedVideo", "PublicVideoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("EssLearn.Core.Entities.Video", null)
-                        .WithOne("DownloadedVideo")
-                        .HasForeignKey("EssLearn.Core.Entities.DownloadedVideo", "VideoId1");
 
                     b.Navigation("Video");
                 });
@@ -345,13 +575,59 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Navigation("Field");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.RoadMap", "Roadmap")
+                        .WithMany("Nodes")
+                        .HasForeignKey("RoadmapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Roadmap");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNodePrerequisite", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.RoadmapNode", "Node")
+                        .WithMany("PrerequisitesOf")
+                        .HasForeignKey("NodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.RoadmapNode", "Prerequisite")
+                        .WithMany("DependentsOf")
+                        .HasForeignKey("PrerequisiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Node");
+
+                    b.Navigation("Prerequisite");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.StorageIntegrity", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.DownloadedVideo", "DownloadedVideo")
+                        .WithOne("StorageIntegrity")
+                        .HasForeignKey("EssLearn.Core.Entities.StorageIntegrity", "DownloadedVideoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DownloadedVideo");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
+                    b.HasOne("EssLearn.Core.Entities.DownloadedVideo", "DownloadedVideo")
+                        .WithMany()
+                        .HasForeignKey("DownloadedVideoId1");
+
                     b.HasOne("EssLearn.Core.Entities.Playlist", "Playlist")
                         .WithMany("Videos")
                         .HasForeignKey("PlaylistId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DownloadedVideo");
 
                     b.Navigation("Playlist");
                 });
@@ -372,6 +648,11 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Navigation("Playlists");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.DownloadedVideo", b =>
+                {
+                    b.Navigation("StorageIntegrity");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.LearningField", b =>
                 {
                     b.Navigation("Playlists");
@@ -382,10 +663,20 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Navigation("Videos");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadMap", b =>
+                {
+                    b.Navigation("Nodes");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.RoadmapNode", b =>
+                {
+                    b.Navigation("DependentsOf");
+
+                    b.Navigation("PrerequisitesOf");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
-                    b.Navigation("DownloadedVideo");
-
                     b.Navigation("Progress");
                 });
 #pragma warning restore 612, 618
