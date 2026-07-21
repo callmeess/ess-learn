@@ -1,14 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SearchStateService } from './search-state.service';
+import { ApiService } from './core/api.service';
+import { FieldDto, ImportResultDto, PlaylistDto } from './core/api.models';
+
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 
 interface NavItem {
   path: string;
   label: string;
 }
-
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-shell',
@@ -17,9 +19,25 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule]
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnInit {
   searchQuery = '';
   isMobileMenuOpen = false;
+
+  showImportDialog = false;
+  importUrl = '';
+  importFieldId: number | null = null;
+  importType: 'video' | 'playlist' | null = null;
+  isImporting = false;
+  importResult: ImportResultDto | null = null;
+  importError = '';
+
+  fields: FieldDto[] = [];
+  playlists: PlaylistDto[] = [];
+  importPlaylistId: number | null = null;
+
+  showAddField = false;
+  newFieldName = '';
+  isCreatingField = false;
 
   readonly navItems: NavItem[] = [
     { path: '/roadmaps', label: 'Roadmaps' },
@@ -31,7 +49,43 @@ export class AppShellComponent {
     { path: '/downloads', label: 'Downloads' }
   ];
 
-  constructor(private readonly searchState: SearchStateService) {}
+  constructor(
+    private readonly searchState: SearchStateService,
+    private readonly api: ApiService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadFields();
+  }
+
+  loadFields(): void {
+    this.api.getFields().subscribe({
+      next: (fields) => {
+        this.fields = fields;
+        if (this.showImportDialog && this.importFieldId === null && fields.length > 0) {
+          this.importFieldId = fields[0].id;
+          this.loadPlaylists();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  loadPlaylists(): void {
+    if (!this.importFieldId) {
+      this.playlists = [];
+      return;
+    }
+
+    this.api.getPlaylists(this.importFieldId).subscribe({
+      next: (playlists) => {
+        this.playlists = playlists;
+      },
+      error: () => {
+        this.playlists = [];
+      }
+    });
+  }
 
   onSearchChange(query: string): void {
     this.searchQuery = query;
@@ -40,5 +94,95 @@ export class AppShellComponent {
 
   closeMobileMenu(): void {
     this.isMobileMenuOpen = false;
+  }
+
+  openImportDialog(): void {
+    this.showImportDialog = true;
+    this.importUrl = '';
+    this.importFieldId = this.fields.length > 0 ? this.fields[0].id : null;
+    this.importType = null;
+    this.importResult = null;
+    this.importError = '';
+    this.showAddField = false;
+    this.newFieldName = '';
+    this.importPlaylistId = null;
+    this.loadPlaylists();
+  }
+
+  closeImportDialog(): void {
+    this.showImportDialog = false;
+  }
+
+  onImportUrlChange(url: string): void {
+    this.importUrl = url;
+    this.importType = this.detectImportType(url);
+    if (this.importType === 'playlist') {
+      this.importPlaylistId = null;
+    }
+  }
+
+  onFieldChange(fieldId: number): void {
+    this.importFieldId = fieldId;
+    this.importPlaylistId = null;
+    this.loadPlaylists();
+  }
+
+  private detectImportType(url: string): 'video' | 'playlist' | null {
+    if (url.includes('list=')) return 'playlist';
+    if (url.includes('watch?v=') || url.includes('youtu.be/')) return 'video';
+    return null;
+  }
+
+  toggleAddField(): void {
+    this.showAddField = !this.showAddField;
+    this.newFieldName = '';
+  }
+
+  createField(): void {
+    if (!this.newFieldName.trim() || this.isCreatingField) return;
+
+    this.isCreatingField = true;
+    this.api.createField({ name: this.newFieldName.trim() }).subscribe({
+      next: (field) => {
+        this.fields = [...this.fields, field];
+        this.importFieldId = field.id;
+        this.newFieldName = '';
+        this.showAddField = false;
+        this.isCreatingField = false;
+        this.loadPlaylists();
+      },
+      error: () => {
+        this.isCreatingField = false;
+      }
+    });
+  }
+
+  submitImport(): void {
+    if (!this.importUrl.trim() || !this.importFieldId || this.isImporting) return;
+
+    this.isImporting = true;
+    this.importResult = null;
+    this.importError = '';
+
+    const type = this.importType ?? 'video';
+
+    const request = type === 'playlist'
+      ? this.api.importPlaylist({ playlistUrl: this.importUrl.trim(), fieldId: this.importFieldId })
+      : this.api.importVideo({
+          videoUrl: this.importUrl.trim(),
+          fieldId: this.importFieldId,
+          ...(this.importPlaylistId ? { playlistId: this.importPlaylistId } : {})
+        });
+
+    request.subscribe({
+      next: (result) => {
+        this.importResult = result;
+        this.isImporting = false;
+      },
+      error: (err) => {
+        this.importError = err.error?.message ?? 'Import failed. Please check the URL and try again.';
+        this.isImporting = false;
+      }
+    });
   }
 }

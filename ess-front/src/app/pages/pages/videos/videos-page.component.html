@@ -31,8 +31,9 @@
 
   <div class="video-grid" *ngIf="!isLoading && !errorMessage && filteredVideos.length > 0">
     <article class="vid-card" *ngFor="let video of filteredVideos">
-      <a [routerLink]="['/videos', video.id]" class="vid-thumb" [style.background]="'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'">
-        <div class="thumb-emoji">{{ video.thumbEmoji }}</div>
+      <a [routerLink]="['/videos', video.id]" class="vid-thumb" [style.background]="video.thumbnailUrl ? 'none' : 'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'">
+        <img *ngIf="video.thumbnailUrl" [src]="video.thumbnailUrl" [alt]="video.title" class="thumb-img" />
+        <div *ngIf="!video.thumbnailUrl" class="thumb-emoji">{{ video.thumbEmoji }}</div>
         <span class="vid-duration">{{ video.duration }}</span>
         <span class="vid-dl-badge" *ngIf="video.downloaded">⬇</span>
 
@@ -65,7 +66,19 @@
             </div>
           </div>
 
-          <span class="vid-menu-btn">⋯</span>
+          <div class="vid-actions">
+            <button
+              type="button"
+              class="vid-dl-btn"
+              [disabled]="video.isDownloading"
+              [class.downloaded]="video.downloaded"
+              [title]="video.downloaded ? 'Already downloaded' : 'Download video'"
+              (click)="quickDownload($event, video)"
+            >
+              {{ video.isDownloading ? '...' : (video.downloaded ? '✓' : '⬇') }}
+            </button>
+            <span class="vid-menu-btn">⋯</span>
+          </div>
         </div>
       </div>
     </article>

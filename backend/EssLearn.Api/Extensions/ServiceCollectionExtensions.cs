@@ -7,6 +7,7 @@ using EssLearn.Core.Interfaces.YtDlp;
 
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
+using EssLearn.Api.Services;
 using EssLearn.Infrastructure.Services;
 using EssLearn.Infrastructure.Services.YtDlp;
 using EssLearn.Infrastructure.UnitOfWork;
@@ -94,12 +95,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddExternalServices(this IServiceCollection services, IConfiguration config)
     {
-        // YouTube API Service
-        var ytApiKey = config["YouTube:ApiKey"]
-            ?? throw new InvalidOperationException("YouTube:ApiKey is not configured.");
-        // services.AddSingleton<IYouTubeService>(new YouTubeImportService(ytApiKey));
-
-        services.AddScoped<IVideoDownloadService, VideoDownloadService>();
         services.AddScoped<IYtDlpOrchestrator, YtDlpOrchestrator>();
         services.AddScoped<IYtDlpService, YtDlpService>();
         services.AddScoped<IYtDlpManager, YtDlpManager>();
@@ -129,6 +124,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDownloadService, DownloadService>();
         services.AddScoped<IRoadmapService, RoadmapService>();
+
+        services.AddHostedService<DownloadJobProcessor>();
 
         return services;
     }

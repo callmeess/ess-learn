@@ -59,20 +59,10 @@ public class DownloadController(IDownloadService downloadService) : ControllerBa
         return Ok(status);
     }
 
-    private static string FormatFileSize(long bytes)
+    [HttpGet("progress")]
+    public async Task<ActionResult<object>> GetDownloadProgress(int videoId)
     {
-        if (bytes == 0) return "Unknown";
-
-        string[] sizes = { "B", "KB", "MB", "GB" };
-        int order = 0;
-        double size = bytes;
-
-        while (size >= 1024 && order < sizes.Length - 1)
-        {
-            order++;
-            size /= 1024;
-        }
-
-        return $"{size:0.##} {sizes[order]}";
+        var progress = await _downloadService.GetDownloadProgressAsync(videoId);
+        return Ok(progress);
     }
 }

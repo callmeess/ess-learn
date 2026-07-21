@@ -1,8 +1,10 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Application.Dtos.BlobStorage;
 using EssLearn.Application.Services.BlobStorage;
+using EssLearn.Core.Dtos;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Interfaces;
+using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -18,7 +20,7 @@ namespace EssLearn.Infrastructure.Services;
 public class DownloadService : IDownloadService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IVideoDownloadService _downloadService;
+    private readonly IYtDlpService _ytdlpService;
     private readonly IBlobStorageService _blobStorage;
     private readonly IDistributedCache _cache;
     private readonly AppDbContext _dbContext;
@@ -28,7 +30,7 @@ public class DownloadService : IDownloadService
 
     public DownloadService(
         IUnitOfWork unitOfWork,
-        IVideoDownloadService downloadService,
+        IYtDlpService ytdlpService,
         IBlobStorageService blobStorage,
         IDistributedCache cache,
         AppDbContext dbContext,
@@ -36,7 +38,7 @@ public class DownloadService : IDownloadService
         ILogger<DownloadService> logger)
     {
         _unitOfWork = unitOfWork;
-        _downloadService = downloadService;
+        _ytdlpService = ytdlpService;
         _blobStorage = blobStorage;
         _cache = cache;
         _dbContext = dbContext;
@@ -46,7 +48,9 @@ public class DownloadService : IDownloadService
 
     public async Task<List<VideoFormatDto>> GetFormatsAsync(int videoId)
     {
-        var video = await _unitOfWork.Videos.GetByIdAsync(videoId);
+        var video = await _dbContext.Videos
+            .Include(v => v.Playlist)
+            .FirstOrDefaultAsync(v => v.Id == videoId);
         if (video?.YoutubeVideoId == null)
             throw new InvalidOperationException("Video not found or has no YouTube ID.");
 
@@ -61,7 +65,7 @@ public class DownloadService : IDownloadService
         }
 
         // Fetch formats from yt-dlp
-        var formatInfos = await _downloadService.GetAvailableFormatsAsync(video.YoutubeVideoId);
+        var formatInfos = await _ytdlpService.GetAvailableFormatsAsync(video.YoutubeVideoId);
 
         var formatDtos = formatInfos.Select(f => new VideoFormatDto(
             f.FormatId,
@@ -87,7 +91,9 @@ public class DownloadService : IDownloadService
 
     public async Task<DownloadedVideoDto> DownloadVideoAsync(int videoId, DownloadVideoDto dto)
     {
-        var video = await _unitOfWork.Videos.GetByIdAsync(videoId);
+        var video = await _dbContext.Videos
+            .Include(v => v.Playlist)
+            .FirstOrDefaultAsync(v => v.Id == videoId);
         if (video?.YoutubeVideoId == null)
             throw new InvalidOperationException("Video not found or has no YouTube ID.");
 
@@ -97,100 +103,41 @@ public class DownloadService : IDownloadService
         if (existingDownload != null)
             throw new InvalidOperationException("Video is already downloaded.");
 
-        // Download the video
-        var result = await _downloadService.DownloadVideoAsync(video.YoutubeVideoId, dto.FormatId, dto.Quality);
-        if (!result.Success)
-            throw new InvalidOperationException($"Download failed: {result.ErrorMessage}");
+        // Check if there's already a pending/active job
+        var existingJob = await _dbContext.DownloadJobs
+            .FirstOrDefaultAsync(j => j.VideoId == videoId &&
+                (j.Status == DownloadJobStatus.Pending ||
+                 j.Status == DownloadJobStatus.Downloading ||
+                 j.Status == DownloadJobStatus.Uploading));
+        if (existingJob != null)
+            throw new InvalidOperationException("A download is already in progress for this video.");
 
-        try
+        // Create a download job
+        var job = new DownloadJob
         {
-            // Read file bytes
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(result.FilePath!);
+            VideoId = videoId,
+            YoutubeVideoId = video.YoutubeVideoId,
+            FormatId = dto.FormatId,
+            Quality = dto.Quality,
+            Status = DownloadJobStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
-            // Generate blob path using hierarchy: videos/fields/{fieldId}/playlists/{playlistId}/{videoId}/video.ext
-            var extension = Path.GetExtension(result.FilePath).TrimStart('.');
-            var blobPath = BlobPathBuilder.VideoPath(
-                video.Playlist.FieldId,
-                video.PlaylistId,
-                videoId,
-                extension);
+        _dbContext.DownloadJobs.Add(job);
+        await _dbContext.SaveChangesAsync();
 
-            // Upload to MinIO
-            using var fileStream = new MemoryStream(fileBytes);
-            var uploadResult = await _blobStorage.UploadFileAsync(
-                _blobOptions.Buckets.Videos,
-                blobPath,
-                fileStream,
-                fileBytes.Length,
-                "video/mp4");
+        _logger.LogInformation("Created download job {JobId} for video {VideoId}", job.Id, videoId);
 
-            if (!uploadResult.Success)
-                throw new InvalidOperationException($"Blob upload failed: {uploadResult.ErrorMessage}");
-
-            // Save to database in transaction
-            var downloadedVideo = new DownloadedVideo
-            {
-                PublicVideoId = videoId,
-                Quality = dto.Quality,
-                FormatId = dto.FormatId,
-                FileSizeBytes = fileBytes.Length,
-                Container = extension,
-                BlobPath = uploadResult.BlobPath,
-                BlobBucket = _blobOptions.Buckets.Videos,
-                Sha256Hash = uploadResult.Sha256Hash,
-                BlobStoredAt = DateTime.UtcNow,
-                DownloadedAt = DateTime.UtcNow
-            };
-
-            await _unitOfWork.DownloadedVideos.AddAsync(downloadedVideo);
-
-            // Create integrity record
-            var integrity = new StorageIntegrity
-            {
-                BlobPath = uploadResult.BlobPath!,
-                BlobBucket = _blobOptions.Buckets.Videos,
-                Sha256Hash = uploadResult.Sha256Hash!,
-                ExpectedSize = fileBytes.Length,
-                ActualSize = uploadResult.FileSizeBytes,
-                IsValid = true,
-                CheckedAt = DateTime.UtcNow,
-                DownloadedVideoId = downloadedVideo.Id
-            };
-
-            await _unitOfWork.StorageIntegrities.AddAsync(integrity);
-            await _unitOfWork.SaveChangesAsync();
-
-            _logger.LogInformation("Video {VideoId} downloaded and stored at {BlobPath}", videoId, uploadResult.BlobPath);
-
-            return new DownloadedVideoDto(
-                downloadedVideo.Id,
-                downloadedVideo.Quality,
-                downloadedVideo.Container,
-                downloadedVideo.FileSizeBytes,
-                downloadedVideo.Width,
-                downloadedVideo.Height,
-                downloadedVideo.DownloadedAt
-            );
-        }
-        finally
-        {
-            // Clean up local temp file
-            if (result.FilePath != null && System.IO.File.Exists(result.FilePath))
-            {
-                try
-                {
-                    System.IO.File.Delete(result.FilePath);
-
-                    var directory = Path.GetDirectoryName(result.FilePath);
-                    if (directory != null && Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory).Any())
-                        Directory.Delete(directory);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to clean up temp file: {FilePath}", result.FilePath);
-                }
-            }
-        }
+        return new DownloadedVideoDto(
+            job.Id,
+            dto.Quality,
+            string.Empty,
+            0,
+            null,
+            null,
+            DateTime.UtcNow
+        );
     }
 
     public async Task DeleteDownloadAsync(int videoId)
@@ -246,6 +193,36 @@ public class DownloadService : IDownloadService
                 downloadedVideo.Height,
                 downloadedVideo.DownloadedAt
             ) : null
+        };
+    }
+
+    public async Task<object> GetDownloadProgressAsync(int videoId)
+    {
+        var job = await _dbContext.DownloadJobs
+            .Where(j => j.VideoId == videoId)
+            .OrderByDescending(j => j.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (job == null)
+        {
+            return new
+            {
+                hasActiveJob = false,
+                status = (string?)null,
+                progress = 0,
+                errorMessage = (string?)null
+            };
+        }
+
+        return new
+        {
+            hasActiveJob = job.Status != DownloadJobStatus.Completed && job.Status != DownloadJobStatus.Failed,
+            jobId = job.Id,
+            status = job.Status.ToString(),
+            progress = job.ProgressPercent,
+            errorMessage = job.ErrorMessage,
+            createdAt = job.CreatedAt,
+            completedAt = job.CompletedAt
         };
     }
 

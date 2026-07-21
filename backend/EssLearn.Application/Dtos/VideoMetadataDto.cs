@@ -34,6 +34,21 @@ public class VideoMetadataDto
     [JsonPropertyName("filesize")]
     public long? FileSize { get; set; }
 
+    [JsonPropertyName("channel_id")]
+    public string? ChannelId { get; set; }
+
+    [JsonPropertyName("uploader_id")]
+    public string? UploaderId { get; set; }
+
+    [JsonPropertyName("playlist_title")]
+    public string? PlaylistTitle { get; set; }
+
+    [JsonPropertyName("playlist_id")]
+    public string? PlaylistIdytDlp { get; set; }
+
+    [JsonPropertyName("playlist_index")]
+    public int? PlaylistIndex { get; set; }
+
     [JsonPropertyName("formats")]
     public List<FormatInfoDto> Formats { get; set; } = new();
 }

@@ -26,7 +26,7 @@ public class YtDlpService : IYtDlpService
             ?? throw new InvalidOperationException("yt-dlp:ExecutablePath is not configured");
 
         _downloadPath = config["yt-dlp:DownloadPath"]
-            ?? Path.Combine(Path.GetTempPath(), "yt-dlp-downloads");
+            ?? Path.Combine(Directory.GetCurrentDirectory(), "downloads");
 
         // Ensure download directory exists
         Directory.CreateDirectory(_downloadPath);
@@ -59,6 +59,64 @@ public class YtDlpService : IYtDlpService
             _logger.LogError(ex, "Failed to parse yt-dlp JSON output");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Gets available formats for a video without downloading
+    /// </summary>
+    public async Task<List<VideoFormatInfo>> GetAvailableFormatsAsync(string youtubeVideoId, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Fetching formats for video: {VideoId}", youtubeVideoId);
+
+        var url = $"https://www.youtube.com/watch?v={youtubeVideoId}";
+        var args = new[] { "--dump-json", url };
+        var json = await RunAsync(args, ct);
+
+        try
+        {
+            var videoInfo = JsonSerializer.Deserialize<JsonElement>(json);
+            if (videoInfo.ValueKind != JsonValueKind.Object)
+            {
+                _logger.LogError("Unexpected yt-dlp JSON output for video {VideoId}", youtubeVideoId);
+                return new List<VideoFormatInfo>();
+            }
+
+            return MapFormatsFromVideoInfo(videoInfo);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse format JSON for video {VideoId}", youtubeVideoId);
+            return new List<VideoFormatInfo>();
+        }
+    }
+
+    /// <summary>
+    /// Gets all video entries from a playlist using --flat-playlist
+    /// </summary>
+    public async Task<List<VideoMetadataDto>> GetPlaylistEntriesAsync(string playlistUrl, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Fetching playlist entries for: {Url}", playlistUrl);
+
+        var args = new[] { "--flat-playlist", "--dump-json", playlistUrl };
+        var json = await RunAsync(args, ct);
+
+        var entries = new List<VideoMetadataDto>();
+        foreach (var line in json.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            try
+            {
+                var entry = JsonSerializer.Deserialize<VideoMetadataDto>(line);
+                if (entry != null)
+                    entries.Add(entry);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Skipping malformed playlist entry");
+            }
+        }
+
+        _logger.LogInformation("Retrieved {Count} entries from playlist", entries.Count);
+        return entries;
     }
 
     /// <summary>
@@ -260,14 +318,90 @@ public class YtDlpService : IYtDlpService
     /// </summary>
     private string ResolveOutputPath(DownloadRequestDto request)
     {
-        // If output template is specified, try to find the file in the download directory
         var template = request.OutputTemplate ?? "%(title)s.%(ext)s";
         var directory = Path.Combine(_downloadPath, Path.GetDirectoryName(template) ?? "");
 
         if (!Directory.Exists(directory))
             return Path.Combine(_downloadPath, template);
 
-        // Return the expected path (actual file matching would require title extraction)
         return Path.Combine(directory, Path.GetFileName(template));
+    }
+
+    private List<VideoFormatInfo> MapFormatsFromVideoInfo(JsonElement videoInfo)
+    {
+        if (!videoInfo.TryGetProperty("formats", out var formats) || formats.ValueKind != JsonValueKind.Array)
+            return new List<VideoFormatInfo>();
+
+        var formatList = new List<VideoFormatInfo>();
+        var seen = new HashSet<string>();
+        foreach (var format in formats.EnumerateArray())
+        {
+            try
+            {
+                var info = ParseFormat(format);
+                var sig = $"{info.Container}|{info.Height?.ToString() ?? "-"}|{info.HasVideo}|{info.HasAudio}|{info.Quality}";
+                if (seen.Add(sig))
+                    formatList.Add(info);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Skipping malformed format entry");
+            }
+        }
+
+        return formatList
+            .Where(f => f.HasVideo && f.HasAudio)
+            .OrderByDescending(f => f.Height ?? 0)
+            .ThenByDescending(f => f.FileSizeBytes)
+            .Take(10)
+            .ToList();
+    }
+
+    private static VideoFormatInfo ParseFormat(JsonElement format)
+    {
+        var formatId = GetNullableString(format, "format_id") ?? string.Empty;
+        var ext = GetNullableString(format, "ext") ?? "mp4";
+
+        int? width = GetNullableInt32(format, "width");
+        int? height = GetNullableInt32(format, "height");
+
+        if (!height.HasValue)
+        {
+            var note = GetNullableString(format, "format_note") ?? GetNullableString(format, "format");
+            if (!string.IsNullOrEmpty(note))
+            {
+                var m = Regex.Match(note, @"(\d{3,4})p");
+                if (m.Success && int.TryParse(m.Groups[1].Value, out var h))
+                    height = h;
+            }
+        }
+
+        long fileSize = GetNullableInt64(format, "filesize") ?? GetNullableInt64(format, "filesize_approx") ?? 0;
+        string? vcodec = GetNullableString(format, "vcodec");
+        string? acodec = GetNullableString(format, "acodec");
+        bool hasVideo = !string.IsNullOrEmpty(vcodec) && vcodec != "none";
+        bool hasAudio = !string.IsNullOrEmpty(acodec) && acodec != "none";
+        string quality = height.HasValue ? $"{height}p" : (hasAudio && !hasVideo ? "audio" : "unknown");
+
+        return new VideoFormatInfo(formatId, quality, ext, fileSize, width, height, vcodec, acodec, hasVideo, hasAudio);
+    }
+
+    private static string? GetNullableString(JsonElement parent, string propertyName)
+    {
+        return parent.TryGetProperty(propertyName, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
+    }
+
+    private static int? GetNullableInt32(JsonElement parent, string propertyName)
+    {
+        if (parent.TryGetProperty(propertyName, out var el) && el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+            return v;
+        return null;
+    }
+
+    private static long? GetNullableInt64(JsonElement parent, string propertyName)
+    {
+        if (parent.TryGetProperty(propertyName, out var el) && el.ValueKind == JsonValueKind.Number && el.TryGetInt64(out var v))
+            return v;
+        return null;
     }
 }

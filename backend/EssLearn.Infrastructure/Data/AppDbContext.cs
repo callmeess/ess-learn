@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<RoadmapNodePrerequisite> RoadmapNodePrerequisites => Set<RoadmapNodePrerequisite>();
     public DbSet<StorageIntegrity> StorageIntegrities => Set<StorageIntegrity>();
     public DbSet<BlobStorageLog> BlobStorageLogs => Set<BlobStorageLog>();
+    public DbSet<DownloadJob> DownloadJobs => Set<DownloadJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +100,19 @@ public class AppDbContext : DbContext
             e.HasIndex(bl => new { bl.BlobBucket, bl.Operation, bl.CreatedAt }).IsUnique(false);
             e.HasIndex(bl => bl.Success);
             e.HasIndex(bl => bl.CreatedAt);
+        });
+
+        modelBuilder.Entity<DownloadJob>(e =>
+        {
+            e.HasKey(dj => dj.Id);
+            e.Property(dj => dj.YoutubeVideoId).HasMaxLength(20).IsRequired();
+            e.Property(dj => dj.FormatId).HasMaxLength(50).IsRequired();
+            e.Property(dj => dj.Quality).HasMaxLength(50).IsRequired();
+            e.Property(dj => dj.ErrorMessage).HasMaxLength(2000);
+            e.Property(dj => dj.OutputPath).HasMaxLength(1000);
+            e.HasIndex(dj => dj.VideoId);
+            e.HasIndex(dj => dj.Status);
+            e.HasOne(dj => dj.Video).WithMany().HasForeignKey(dj => dj.VideoId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RoadMap>(e =>

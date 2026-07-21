@@ -6,8 +6,9 @@
 
   <div class="detail-layout" *ngIf="!isLoading && !errorMessage && video">
     <div>
-      <div class="player-wrap" [style.background]="'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'" (click)="togglePlay()">
-        <div class="player-emoji">{{ video.thumbEmoji }}</div>
+      <div class="player-wrap" [style.background]="video.thumbnailUrl ? 'none' : 'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'" (click)="togglePlay()">
+        <img *ngIf="video.thumbnailUrl" [src]="video.thumbnailUrl" [alt]="video.title" class="player-thumb-img" />
+        <div *ngIf="!video.thumbnailUrl" class="player-emoji">{{ video.thumbEmoji }}</div>
         <div class="player-overlay">
           <div class="player-play" [class.playing]="isPlaying">{{ isPlaying ? '❚❚' : '▶' }}</div>
         </div>
@@ -42,37 +43,63 @@
     </div>
 
     <div class="right-panel">
-      <article class="panel-card">
+      <article class="panel-card" (click)="loadFormatsOnDemand()">
         <div class="panel-head">Download Options</div>
         <div class="panel-body">
-          <div class="quality-label">Select Quality and Format</div>
+          <div *ngIf="!formatsLoaded && !formatsLoading" class="formats-placeholder">
+            <p class="formats-hint">Click to load available formats</p>
+          </div>
 
-          <select class="quality-select" [value]="selectedFormat" (change)="setSelectedFormat($any($event.target).value)">
-            <option *ngFor="let format of formats" [value]="format.id">{{ format.label }}</option>
-          </select>
+          <div *ngIf="formatsLoading" class="formats-loading">
+            <p>Loading formats from YouTube...</p>
+            <p class="formats-loading-hint">This may take a moment</p>
+          </div>
 
-          <table class="specs-table">
-            <tr>
-              <td>Quality:</td>
-              <td>{{ selectedFormatSpec.quality }}</td>
-            </tr>
-            <tr>
-              <td>Format:</td>
-              <td>{{ selectedFormatSpec.format }}</td>
-            </tr>
-            <tr>
-              <td>FPS:</td>
-              <td>{{ selectedFormatSpec.fps }}</td>
-            </tr>
-            <tr>
-              <td>File Size:</td>
-              <td>{{ selectedFormatSpec.size }}</td>
-            </tr>
-          </table>
+          <div *ngIf="formatsError" class="formats-error">
+            <p>{{ formatsError }}</p>
+            <button type="button" class="btn-retry" (click)="loadFormatsOnDemand(); $event.stopPropagation()">Retry</button>
+          </div>
 
-          <button type="button" class="btn-download" [disabled]="isDownloading" (click)="downloadVideo()">
+          <ng-container *ngIf="formatsLoaded && !formatsLoading">
+            <div class="quality-label">Select Quality and Format</div>
+
+            <select class="quality-select" [value]="selectedFormat" (change)="setSelectedFormat($any($event.target).value)">
+              <option *ngFor="let format of formats" [value]="format.id">{{ format.label }}</option>
+            </select>
+
+            <table class="specs-table">
+              <tr>
+                <td>Quality:</td>
+                <td>{{ selectedFormatSpec.quality }}</td>
+              </tr>
+              <tr>
+                <td>Format:</td>
+                <td>{{ selectedFormatSpec.format }}</td>
+              </tr>
+              <tr>
+                <td>FPS:</td>
+                <td>{{ selectedFormatSpec.fps }}</td>
+              </tr>
+              <tr>
+                <td>File Size:</td>
+                <td>{{ selectedFormatSpec.size }}</td>
+              </tr>
+            </table>
+          </ng-container>
+
+          <button type="button" class="btn-download" [disabled]="isDownloading || (!formatsLoaded && !selectedFormatSpec.id)" (click)="downloadVideo(); $event.stopPropagation()">
             {{ isDownloading ? 'Downloading...' : 'Download Video' }}
           </button>
+
+          <div *ngIf="isDownloading" class="download-progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="downloadProgress"></div>
+            </div>
+            <div class="progress-info">
+              <span class="progress-text">{{ downloadStatusText }}</span>
+              <span class="progress-percent">{{ downloadProgress }}%</span>
+            </div>
+          </div>
         </div>
       </article>
 

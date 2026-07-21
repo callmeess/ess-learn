@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
 import { SearchStateService } from '../../../search-state.service';
 import { ApiService } from '../../../core/api.service';
 import { VideoListItemDto, VideoStatus } from '../../../core/api.models';
@@ -17,8 +18,10 @@ interface Video {
   status: 'not-downloaded' | 'in-progress' | 'completed';
   statusLabel: string;
   watchProgress: number | null;
+  thumbnailUrl: string | null;
   thumbGrad: [string, string, string];
   thumbEmoji: string;
+  isDownloading?: boolean;
 }
 
 type SortBy = 'recent' | 'duration' | 'alpha' | 'progress';
@@ -48,6 +51,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
   private querySub?: Subscription;
   private loadSub?: Subscription;
+  private apiSubs: Subscription[] = [];
   private readonly gradients: [string, string, string][] = [
     ['#1a1a2e', '#16213e', '#0f3460'],
     ['#0d1117', '#1c2a3a', '#2d4a6b'],
@@ -74,6 +78,63 @@ export class VideosPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
     this.loadSub?.unsubscribe();
+    this.apiSubs.forEach((sub) => sub.unsubscribe());
+  }
+
+  quickDownload(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (video.isDownloading || video.downloaded) {
+      return;
+    }
+
+    video.isDownloading = true;
+
+    this.api.getVideoFormats(video.id).subscribe({
+      next: (formats) => {
+        if (formats.length === 0) {
+          video.isDownloading = false;
+          return;
+        }
+
+        const bestFormat = formats[0];
+        this.api.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
+          next: () => {
+            this.pollDownloadProgress(video);
+          },
+          error: () => {
+            video.isDownloading = false;
+          }
+        });
+      },
+      error: () => {
+        video.isDownloading = false;
+      }
+    });
+  }
+
+  private pollDownloadProgress(video: Video): void {
+    const poll$ = interval(2000).pipe(
+      switchMap(() => this.api.getDownloadProgress(video.id)),
+      takeWhile((p) => p.hasActiveJob, true)
+    );
+
+    this.apiSubs.push(
+      poll$.subscribe({
+        next: (progress) => {
+          if (progress.status === 'Completed') {
+            video.downloaded = true;
+            video.isDownloading = false;
+          } else if (progress.status === 'Failed') {
+            video.isDownloading = false;
+          }
+        },
+        error: () => {
+          video.isDownloading = false;
+        }
+      })
+    );
   }
 
   loadVideos(): void {
@@ -163,6 +224,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
       status,
       statusLabel: this.statusLabel(status, progress),
       watchProgress: progress,
+      thumbnailUrl: video.thumbnailUrl,
       thumbGrad: this.gradients[index],
       thumbEmoji: this.emojis[index]
     };

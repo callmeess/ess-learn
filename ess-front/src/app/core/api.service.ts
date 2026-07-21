@@ -9,9 +9,13 @@ import {
   CreateRoadmapDto,
   CreateRoadmapNodeDto,
   DashboardDto,
+  DownloadProgressDto,
   DownloadStatusDto,
   DownloadedVideoDto,
   FieldDto,
+  ImportPlaylistDto,
+  ImportResultDto,
+  ImportVideoDto,
   PlaylistDetailDto,
   PlaylistDto,
   ProgressDto,
@@ -125,6 +129,10 @@ export class ApiService {
     return this.http.get<DownloadStatusDto>(`${this.baseUrl}/api/videos/${videoId}/download/status`);
   }
 
+  getDownloadProgress(videoId: number): Observable<DownloadProgressDto> {
+    return this.http.get<DownloadProgressDto>(`${this.baseUrl}/api/videos/${videoId}/download/progress`);
+  }
+
   // Roadmaps
   getRoadmaps(): Observable<RoadmapListItemDto[]> {
     return this.http.get<RoadmapListItemDto[]>(`${this.baseUrl}/api/roadmaps`);
@@ -164,5 +172,14 @@ export class ApiService {
 
   deleteRoadmapNode(roadmapId: number, nodeId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/api/roadmaps/${roadmapId}/nodes/${nodeId}`);
+  }
+
+  // Import
+  importVideo(dto: ImportVideoDto): Observable<ImportResultDto> {
+    return this.http.post<ImportResultDto>(`${this.baseUrl}/api/import/video`, dto);
+  }
+
+  importPlaylist(dto: ImportPlaylistDto): Observable<ImportResultDto> {
+    return this.http.post<ImportResultDto>(`${this.baseUrl}/api/import/playlist`, dto);
   }
 }
