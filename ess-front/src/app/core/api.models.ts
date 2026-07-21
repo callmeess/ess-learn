@@ -150,6 +150,16 @@ export interface DownloadStatusDto {
   download: DownloadedVideoDto | null;
 }
 
+export interface DownloadProgressDto {
+  hasActiveJob: boolean;
+  jobId?: number;
+  status?: string;
+  progress: number;
+  errorMessage?: string;
+  createdAt?: string;
+  completedAt?: string;
+}
+
 export interface ProgressDto {
   videoId: number;
   status: VideoStatus;
@@ -241,4 +251,22 @@ export interface UpdateRoadmapNodeDto {
 export interface AddPlaylistToRoadmapDto {
   playlistId: number;
   afterNodeId?: number;
+}
+
+export interface ImportVideoDto {
+  videoUrl: string;
+  fieldId: number;
+  playlistId?: number;
+}
+
+export interface ImportPlaylistDto {
+  playlistUrl: string;
+  fieldId: number;
+}
+
+export interface ImportResultDto {
+  playlistId: number;
+  title: string;
+  videosImported: number;
+  channelTitle: string | null;
 }

@@ -55,12 +55,99 @@
           />
         </div>
 
-        <button type="button" class="primary-button">Import</button>
+        <button type="button" class="primary-button" (click)="openImportDialog()">Import</button>
       </div>
     </header>
 
     <main class="page-container">
       <router-outlet></router-outlet>
     </main>
+  </div>
+</div>
+
+<!-- Import Dialog -->
+<div class="dialog-backdrop" *ngIf="showImportDialog" (click)="closeImportDialog()">
+  <div class="dialog" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>Import from YouTube</h2>
+      <button type="button" class="dialog-close" (click)="closeImportDialog()">&times;</button>
+    </div>
+
+    <div class="dialog-body" *ngIf="!importResult">
+      <label class="field-label">YouTube URL</label>
+      <input
+        type="url"
+        class="field-input"
+        [ngModel]="importUrl"
+        (ngModelChange)="onImportUrlChange($event)"
+        placeholder="https://www.youtube.com/watch?v=... or playlist?list=..."
+      />
+      <p class="field-hint" *ngIf="importType">
+        Detected: <strong>{{ importType === 'playlist' ? 'Playlist' : 'Video' }}</strong>
+      </p>
+
+      <div class="field-row">
+        <div class="field-select-wrap">
+          <label class="field-label">Add to Field</label>
+          <select class="field-input" [ngModel]="importFieldId" (ngModelChange)="onFieldChange($event)">
+            <option [ngValue]="null" disabled>Select a field</option>
+            <option *ngFor="let field of fields" [ngValue]="field.id">{{ field.name }}</option>
+          </select>
+        </div>
+        <button type="button" class="add-field-btn" (click)="toggleAddField()" title="Add new field">+</button>
+      </div>
+
+      <div class="field-row" *ngIf="importType === 'video' && playlists.length > 0">
+        <div class="field-select-wrap">
+          <label class="field-label">Add to Playlist (optional)</label>
+          <select class="field-input" [ngModel]="importPlaylistId" (ngModelChange)="importPlaylistId = $event">
+            <option [ngValue]="null">Unsorted</option>
+            <option *ngFor="let playlist of playlists" [ngValue]="playlist.id">{{ playlist.title }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="add-field-inline" *ngIf="showAddField">
+        <input
+          type="text"
+          class="field-input"
+          [ngModel]="newFieldName"
+          (ngModelChange)="newFieldName = $event"
+          placeholder="Field name"
+          (keydown.enter)="createField()"
+        />
+        <button
+          type="button"
+          class="primary-button small-btn"
+          [disabled]="!newFieldName.trim() || isCreatingField"
+          (click)="createField()"
+        >
+          {{ isCreatingField ? '...' : 'Add' }}
+        </button>
+      </div>
+
+      <p class="field-error" *ngIf="importError">{{ importError }}</p>
+    </div>
+
+    <div class="dialog-body dialog-success" *ngIf="importResult">
+      <p class="success-title">Import successful</p>
+      <p class="success-detail">{{ importResult.videosImported }} video{{ importResult.videosImported === 1 ? '' : 's' }} imported</p>
+      <p class="success-detail" *ngIf="importResult.channelTitle">Channel: {{ importResult.channelTitle }}</p>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="ghost-button" (click)="closeImportDialog()">
+        {{ importResult ? 'Close' : 'Cancel' }}
+      </button>
+      <button
+        type="button"
+        class="primary-button"
+        *ngIf="!importResult"
+        [disabled]="!importUrl.trim() || !importFieldId || isImporting"
+        (click)="submitImport()"
+      >
+        {{ isImporting ? 'Importing...' : 'Import' }}
+      </button>
+    </div>
   </div>
 </div>

@@ -8,4 +8,5 @@ public interface IDownloadService
     Task<DownloadedVideoDto> DownloadVideoAsync(int videoId, DownloadVideoDto dto);
     Task DeleteDownloadAsync(int videoId);
     Task<object> GetDownloadStatusAsync(int videoId);
+    Task<object> GetDownloadProgressAsync(int videoId);
 }
