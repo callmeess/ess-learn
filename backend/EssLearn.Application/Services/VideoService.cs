@@ -1,4 +1,5 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
 using EssLearn.Core.Interfaces;
@@ -37,23 +38,7 @@ public class VideoService : IVideoService
             .ThenBy(v => v.Position)
             .ToListAsync();
 
-        return videos.Select(v => new VideoListItemDto(
-            v.Id,
-            v.PlaylistId,
-            v.Playlist.FieldId,
-            v.Title,
-            v.ThumbnailUrl,
-            v.Url,
-            v.DurationSeconds,
-            v.Position,
-            v.Progress?.Status ?? VideoStatus.NotStarted,
-            v.Progress?.WatchedSeconds ?? 0,
-            v.Playlist.Title,
-            v.Playlist.Channel?.Title,
-            v.DownloadedVideo is not null,
-            v.PublishedAt,
-            v.CreatedAt
-        )).ToList();
+        return videos.Select(v => v.ToListItemDto()).ToList();
     }
 
     public async Task<VideoDto?> GetByIdAsync(int id)
@@ -63,7 +48,7 @@ public class VideoService : IVideoService
             .Include(v => v.DownloadedVideo)
             .FirstOrDefaultAsync(v => v.Id == id);
 
-        return v is null ? null : MapVideo(v);
+        return v?.ToDto();
     }
 
     public async Task<ProgressDto?> UpdateProgressAsync(int id, UpdateProgressDto dto)
@@ -93,7 +78,7 @@ public class VideoService : IVideoService
         await _unitOfWork.VideoProgresses.UpdateAsync(progress);
         await _unitOfWork.SaveChangesAsync();
 
-        return new ProgressDto(id, progress.Status, progress.WatchedSeconds, progress.LastWatchedAt, progress.CompletedAt);
+        return progress.ToDto();
     }
 
     public async Task<ProgressDto> GetProgressAsync(int id)
@@ -102,13 +87,6 @@ public class VideoService : IVideoService
         if (progress is null)
             return new ProgressDto(id, VideoStatus.NotStarted, 0, null, null);
 
-        return new ProgressDto(id, progress.Status, progress.WatchedSeconds, progress.LastWatchedAt, progress.CompletedAt);
+        return progress.ToDto();
     }
-
-    private static VideoDto MapVideo(Video v) => new(
-        v.Id, v.PlaylistId, v.YoutubeVideoId, v.Title, v.ThumbnailUrl, v.Url,
-        v.DurationSeconds, v.Position,
-        v.Progress?.Status ?? VideoStatus.NotStarted,
-        v.Progress?.WatchedSeconds ?? 0
-    );
 }

@@ -4,9 +4,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval, fromEvent } from 'rxjs';
 import { throttleTime, switchMap, map } from 'rxjs/operators';
 import Hls from 'hls.js';
-import { ApiService } from '../../../core/api.service';
+import { VideoService, PlaylistService, DownloadService, StreamingService } from '../../../core/services';
 import { API_BASE_URL } from '../../../core/api.config';
-import { VideoListItemDto, VideoStatus } from '../../../core/api.models';
+import { VideoListItemDto, VideoStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-watch-page',
@@ -47,7 +47,10 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly api: ApiService
+    private readonly videoService: VideoService,
+    private readonly playlistService: PlaylistService,
+    private readonly downloadService: DownloadService,
+    private readonly streamingService: StreamingService
   ) {}
 
   ngOnInit(): void {
@@ -77,7 +80,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.isTranscoding = false;
 
     this.subs.add(
-      this.api.getVideo(videoId).subscribe({
+      this.videoService.getVideo(videoId).subscribe({
         next: (video) => {
           this.currentVideo = {
             id: video.id,
@@ -117,7 +120,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
 
   private loadPlaylistTitle(playlistId: number): void {
     this.subs.add(
-      this.api.getPlaylist(playlistId).subscribe({
+      this.playlistService.getPlaylist(playlistId).subscribe({
         next: (detail) => {
           this.playlistTitle = detail.playlist.title;
           this.totalCount = detail.playlist.totalVideos;
@@ -132,7 +135,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.loadingPage = true;
 
     this.subs.add(
-      this.api.getPlaylistVideos(this.playlistId, page, 10).subscribe({
+      this.playlistService.getPlaylistVideos(this.playlistId, page, 10).subscribe({
         next: (result) => {
           this.playlist = [...this.playlist, ...result.videos];
           this.currentPage = result.page;
@@ -149,7 +152,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
 
   private checkDownloadStatus(): void {
     this.subs.add(
-      this.api.getDownloadStatus(this.currentVideoId).subscribe({
+      this.downloadService.getStatus(this.currentVideoId).subscribe({
         next: (status) => {
           this.isDownloaded = status.isDownloaded;
           if (this.currentVideo) {
@@ -169,7 +172,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
 
   private checkStreamingStatus(): void {
     this.subs.add(
-      this.api.getStreamingStatus(this.currentVideoId).subscribe({
+      this.streamingService.getStatus(this.currentVideoId).subscribe({
         next: (status) => {
           this.isTranscoded = status.isTranscoded;
           this.isTranscoding = status.isTranscoding;
@@ -193,7 +196,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.downloadProgress = 0;
 
     this.subs.add(
-      this.api.getVideoFormats(this.currentVideoId).subscribe({
+      this.downloadService.getFormats(this.currentVideoId).subscribe({
         next: (formats) => {
           if (formats.length === 0) {
             this.isDownloading = false;
@@ -202,7 +205,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           }
 
           const bestFormat = formats[0];
-          this.api.downloadVideo(this.currentVideoId, bestFormat.formatId, bestFormat.quality).subscribe({
+          this.downloadService.downloadVideo(this.currentVideoId, bestFormat.formatId, bestFormat.quality).subscribe({
             next: () => {
               this.pollDownloadProgress();
             },
@@ -221,7 +224,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   private pollDownloadProgress(): void {
     this.subs.add(
       interval(2000).pipe(
-        switchMap(() => this.api.getDownloadProgress(this.currentVideoId))
+        switchMap(() => this.downloadService.getProgress(this.currentVideoId))
       ).subscribe({
         next: (progress) => {
           this.downloadProgress = Math.round(progress.progress);
@@ -247,7 +250,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   private pollTranscodingStatus(): void {
     this.subs.add(
       interval(3000).pipe(
-        switchMap(() => this.api.getStreamingStatus(this.currentVideoId))
+        switchMap(() => this.streamingService.getStatus(this.currentVideoId))
       ).subscribe({
         next: (status) => {
           this.transcodeProgress = status.progressPercent;
@@ -323,7 +326,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
       const status = time >= duration * 0.9
         ? VideoStatus.Completed
         : VideoStatus.InProgress;
-      this.api.updateVideoProgress(this.currentVideoId, time, status).subscribe({
+      this.videoService.updateVideoProgress(this.currentVideoId, time, status).subscribe({
         next: (progress) => {
           if (this.currentVideo) {
             this.currentVideo.watchedSeconds = progress.watchedSeconds;
@@ -353,7 +356,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     const finalTime = video ? video.duration : 0;
 
     this.subs.add(
-      this.api.updateVideoProgress(this.currentVideoId, finalTime, VideoStatus.Completed).subscribe({
+      this.videoService.updateVideoProgress(this.currentVideoId, finalTime, VideoStatus.Completed).subscribe({
         next: (progress) => {
           if (this.currentVideo) {
             this.currentVideo.watchedSeconds = progress.watchedSeconds;
@@ -376,7 +379,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
       this.selectVideo(nextVideo);
     } else if (this.hasMoreVideos) {
       this.subs.add(
-        this.api.getPlaylistVideos(this.playlistId!, this.currentPage + 1, 10).subscribe({
+        this.playlistService.getPlaylistVideos(this.playlistId!, this.currentPage + 1, 10).subscribe({
           next: (result) => {
             this.playlist = [...this.playlist, ...result.videos];
             this.hasMoreVideos = result.hasMore;

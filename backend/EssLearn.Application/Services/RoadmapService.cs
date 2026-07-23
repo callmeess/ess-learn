@@ -1,4 +1,5 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
 using EssLearn.Core.Interfaces;
@@ -23,7 +24,7 @@ public class RoadmapService : IRoadmapService
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        return roadmaps.Select(MapListItem).ToList();
+        return roadmaps.Select(r => r.ToListItemDto()).ToList();
     }
 
     public async Task<RoadmapDetailDto?> GetByIdAsync(int id)
@@ -32,7 +33,7 @@ public class RoadmapService : IRoadmapService
             .Include(r => r.Nodes).ThenInclude(n => n.PrerequisitesOf)
             .FirstOrDefaultAsync(r => r.Id == id);
 
-        return roadmap == null ? null : MapDetail(roadmap);
+        return roadmap?.ToDetailDto();
     }
 
     public async Task<RoadmapListItemDto> CreateAsync(CreateRoadmapDto dto)
@@ -50,7 +51,7 @@ public class RoadmapService : IRoadmapService
         _dbContext.RoadMaps.Add(roadmap);
         await _dbContext.SaveChangesAsync();
 
-        return MapListItem(roadmap);
+        return roadmap.ToListItemDto();
     }
 
     public async Task DeleteAsync(int id)
@@ -81,7 +82,7 @@ public class RoadmapService : IRoadmapService
 
         await _dbContext.SaveChangesAsync();
 
-        return MapListItem(roadmap);
+        return roadmap.ToListItemDto();
     }
 
     public async Task<RoadmapNodeDto> AddPlaylistToRoadmapAsync(int roadmapId, AddPlaylistToRoadmapDto dto)
@@ -129,7 +130,7 @@ public class RoadmapService : IRoadmapService
             .Include(n => n.PrerequisitesOf)
             .FirstAsync(n => n.Id == node.Id);
 
-        return MapNode(reloaded);
+        return reloaded.ToDto();
     }
 
     public async Task<RoadmapNodeDto> AddNodeAsync(int roadmapId, CreateRoadmapNodeDto dto)
@@ -139,8 +140,8 @@ public class RoadmapService : IRoadmapService
             .FirstOrDefaultAsync(r => r.Id == roadmapId)
             ?? throw new InvalidOperationException("Roadmap not found");
 
-        var mediaType = dto.MediaType?.ToLower() == "book" ? RoadmapMediaType.Book : RoadmapMediaType.Video;
-        var status = ParseStatus(dto.Status);
+        var mediaType = dto.MediaType.ToMediaType();
+        var status = dto.Status.ToStatus();
 
         var node = new RoadmapNode
         {
@@ -192,7 +193,7 @@ public class RoadmapService : IRoadmapService
             .Include(n => n.PrerequisitesOf)
             .FirstAsync(n => n.Id == node.Id);
 
-        return MapNode(reloaded);
+        return reloaded.ToDto();
     }
 
     public async Task<RoadmapNodeDto?> UpdateNodeStatusAsync(int roadmapId, int nodeId, UpdateNodeStatusDto dto)
@@ -206,7 +207,7 @@ public class RoadmapService : IRoadmapService
 
         if (node == null) return null;
 
-        node.Status = ParseStatus(dto.Status);
+        node.Status = dto.Status.ToStatus();
         node.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
@@ -221,7 +222,7 @@ public class RoadmapService : IRoadmapService
             .Include(n => n.PrerequisitesOf)
             .FirstAsync(n => n.Id == nodeId);
 
-        return MapNode(reloaded);
+        return reloaded.ToDto();
     }
 
     public async Task DeleteNodeAsync(int roadmapId, int nodeId)
@@ -249,7 +250,7 @@ public class RoadmapService : IRoadmapService
         if (dto.Duration != null) node.Duration = dto.Duration;
         if (dto.ResourceCount.HasValue) node.ResourceCount = Math.Max(1, dto.ResourceCount.Value);
         if (dto.MediaType != null)
-            node.MediaType = dto.MediaType.ToLower() == "book" ? RoadmapMediaType.Book : RoadmapMediaType.Video;
+            node.MediaType = dto.MediaType.ToMediaType();
 
         node.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
@@ -258,7 +259,7 @@ public class RoadmapService : IRoadmapService
             .Include(n => n.PrerequisitesOf)
             .FirstAsync(n => n.Id == nodeId);
 
-        return MapNode(reloaded);
+        return reloaded.ToDto();
     }
 
     private async Task UnlockDependentNodesAsync(RoadmapNode completedNode)
@@ -287,65 +288,5 @@ public class RoadmapService : IRoadmapService
         await _dbContext.SaveChangesAsync();
     }
 
-    private static RoadmapNodeStatus ParseStatus(string? status)
-    {
-        return status?.ToLower() switch
-        {
-            "in-progress" => RoadmapNodeStatus.InProgress,
-            "completed" => RoadmapNodeStatus.Completed,
-            "available" => RoadmapNodeStatus.Available,
-            "locked" => RoadmapNodeStatus.Locked,
-            _ => RoadmapNodeStatus.NotStarted
-        };
-    }
 
-    private static string StatusToString(RoadmapNodeStatus status)
-    {
-        return status switch
-        {
-            RoadmapNodeStatus.InProgress => "in-progress",
-            RoadmapNodeStatus.Completed => "completed",
-            RoadmapNodeStatus.Available => "available",
-            RoadmapNodeStatus.Locked => "locked",
-            _ => "not-started"
-        };
-    }
-
-    private static string MediaTypeToString(RoadmapMediaType type)
-    {
-        return type == RoadmapMediaType.Book ? "book" : "video";
-    }
-
-    private static RoadmapListItemDto MapListItem(RoadMap r)
-    {
-        var nodes = r.Nodes.ToList();
-        var totalNodes = nodes.Count;
-        var completedNodes = nodes.Count(n => n.Status == RoadmapNodeStatus.Completed);
-        var progress = totalNodes > 0 ? Math.Round((double)completedNodes / totalNodes * 100) : 0;
-
-        var tags = string.IsNullOrWhiteSpace(r.Tags)
-            ? []
-            : r.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray();
-
-        return new RoadmapListItemDto(
-            r.Id, r.Name, r.Description, r.Category, r.Color, r.Icon,
-            tags, totalNodes, completedNodes, 0, progress, r.CreatedAt
-        );
-    }
-
-    private static RoadmapDetailDto MapDetail(RoadMap r)
-    {
-        var nodes = r.Nodes.Select(MapNode).ToList();
-        return new RoadmapDetailDto(r.Id, r.Name, r.Description, r.Color, nodes);
-    }
-
-    private static RoadmapNodeDto MapNode(RoadmapNode n)
-    {
-        var prereqs = n.PrerequisitesOf.Select(p => p.PrerequisiteId).ToArray();
-        return new RoadmapNodeDto(
-            n.Id, n.Title, n.Description, StatusToString(n.Status),
-            n.Duration, MediaTypeToString(n.MediaType), n.ResourceCount,
-            prereqs, n.PositionX, n.PositionY
-        );
-    }
 }

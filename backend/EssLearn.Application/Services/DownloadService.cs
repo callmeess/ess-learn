@@ -1,7 +1,7 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Application.Dtos.BlobStorage;
+using EssLearn.Application.Mappings;
 using EssLearn.Application.Services.BlobStorage;
-using EssLearn.Core.Dtos;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Interfaces;
 using EssLearn.Core.Interfaces.YtDlp;
@@ -67,17 +67,7 @@ public class DownloadService : IDownloadService
         // Fetch formats from yt-dlp
         var formatInfos = await _ytdlpService.GetAvailableFormatsAsync(video.YoutubeVideoId);
 
-        var formatDtos = formatInfos.Select(f => new VideoFormatDto(
-            f.FormatId,
-            f.Quality,
-            f.Container,
-            f.FileSizeBytes,
-            FormatFileSize(f.FileSizeBytes),
-            f.Width,
-            f.Height,
-            f.VideoCodec,
-            f.AudioCodec
-        )).ToList();
+        var formatDtos = formatInfos.Select(f => f.ToDto()).ToList();
 
         // Cache for 24 hours
         var cacheOptions = new DistributedCacheEntryOptions
@@ -176,70 +166,24 @@ public class DownloadService : IDownloadService
         }
     }
 
-    public async Task<object> GetDownloadStatusAsync(int videoId)
+    public async Task<DownloadStatusResponseDto> GetDownloadStatusAsync(int videoId)
     {
         var downloadedVideo = await _dbContext.DownloadedVideos
             .FirstOrDefaultAsync(dv => dv.PublicVideoId == videoId);
 
-        return new
-        {
-            isDownloaded = downloadedVideo != null,
-            download = downloadedVideo != null ? new DownloadedVideoDto(
-                downloadedVideo.Id,
-                downloadedVideo.Quality,
-                downloadedVideo.Container,
-                downloadedVideo.FileSizeBytes,
-                downloadedVideo.Width,
-                downloadedVideo.Height,
-                downloadedVideo.DownloadedAt
-            ) : null
-        };
+        return new DownloadStatusResponseDto(
+            downloadedVideo is not null,
+            downloadedVideo?.ToDto()
+        );
     }
 
-    public async Task<object> GetDownloadProgressAsync(int videoId)
+    public async Task<DownloadProgressResponseDto> GetDownloadProgressAsync(int videoId)
     {
         var job = await _dbContext.DownloadJobs
             .Where(j => j.VideoId == videoId)
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
 
-        if (job == null)
-        {
-            return new
-            {
-                hasActiveJob = false,
-                status = (string?)null,
-                progress = 0,
-                errorMessage = (string?)null
-            };
-        }
-
-        return new
-        {
-            hasActiveJob = job.Status != DownloadJobStatus.Completed && job.Status != DownloadJobStatus.Failed,
-            jobId = job.Id,
-            status = job.Status.ToString(),
-            progress = job.ProgressPercent,
-            errorMessage = job.ErrorMessage,
-            createdAt = job.CreatedAt,
-            completedAt = job.CompletedAt
-        };
-    }
-
-    private static string FormatFileSize(long bytes)
-    {
-        if (bytes == 0) return "Unknown";
-
-        string[] sizes = { "B", "KB", "MB", "GB" };
-        int order = 0;
-        double size = bytes;
-
-        while (size >= 1024 && order < sizes.Length - 1)
-        {
-            order++;
-            size /= 1024;
-        }
-
-        return $"{Math.Round(size, 2)} {sizes[order]}";
+        return job.ToProgressResponseDto();
     }
 }

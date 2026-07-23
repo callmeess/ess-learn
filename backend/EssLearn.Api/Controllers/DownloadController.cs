@@ -53,14 +53,14 @@ public class DownloadController(IDownloadService downloadService) : ControllerBa
     }
 
     [HttpGet("status")]
-    public async Task<ActionResult<object>> GetDownloadStatus(int videoId)
+    public async Task<ActionResult<DownloadStatusResponseDto>> GetDownloadStatus(int videoId)
     {
         var status = await _downloadService.GetDownloadStatusAsync(videoId);
         return Ok(status);
     }
 
     [HttpGet("progress")]
-    public async Task<ActionResult<object>> GetDownloadProgress(int videoId)
+    public async Task<ActionResult<DownloadProgressResponseDto>> GetDownloadProgress(int videoId)
     {
         var progress = await _downloadService.GetDownloadProgressAsync(videoId);
         return Ok(progress);

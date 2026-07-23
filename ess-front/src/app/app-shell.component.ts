@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SearchStateService } from './search-state.service';
-import { ApiService } from './core/api.service';
-import { FieldDto, ImportResultDto, PlaylistDto } from './core/api.models';
+import { FieldService, ImportService, PlaylistService } from './core/services';
+import { FieldDto, ImportResultDto, PlaylistDto } from './core/models';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -51,7 +51,9 @@ export class AppShellComponent implements OnInit {
 
   constructor(
     private readonly searchState: SearchStateService,
-    private readonly api: ApiService
+    private readonly fieldService: FieldService,
+    private readonly playlistService: PlaylistService,
+    private readonly importService: ImportService
   ) {}
 
   ngOnInit(): void {
@@ -59,7 +61,7 @@ export class AppShellComponent implements OnInit {
   }
 
   loadFields(): void {
-    this.api.getFields().subscribe({
+    this.fieldService.getFields().subscribe({
       next: (fields) => {
         this.fields = fields;
         if (this.showImportDialog && this.importFieldId === null && fields.length > 0) {
@@ -77,7 +79,7 @@ export class AppShellComponent implements OnInit {
       return;
     }
 
-    this.api.getPlaylists(this.importFieldId).subscribe({
+    this.playlistService.getPlaylists(this.importFieldId).subscribe({
       next: (playlists) => {
         this.playlists = playlists;
       },
@@ -142,7 +144,7 @@ export class AppShellComponent implements OnInit {
     if (!this.newFieldName.trim() || this.isCreatingField) return;
 
     this.isCreatingField = true;
-    this.api.createField({ name: this.newFieldName.trim() }).subscribe({
+    this.fieldService.createField({ name: this.newFieldName.trim() }).subscribe({
       next: (field) => {
         this.fields = [...this.fields, field];
         this.importFieldId = field.id;
@@ -167,8 +169,8 @@ export class AppShellComponent implements OnInit {
     const type = this.importType ?? 'video';
 
     const request = type === 'playlist'
-      ? this.api.importPlaylist({ playlistUrl: this.importUrl.trim(), fieldId: this.importFieldId })
-      : this.api.importVideo({
+      ? this.importService.importPlaylist({ playlistUrl: this.importUrl.trim(), fieldId: this.importFieldId })
+      : this.importService.importVideo({
           videoUrl: this.importUrl.trim(),
           fieldId: this.importFieldId,
           ...(this.importPlaylistId ? { playlistId: this.importPlaylistId } : {})

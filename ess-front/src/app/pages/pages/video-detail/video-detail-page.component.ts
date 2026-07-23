@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
-import { ApiService } from '../../../core/api.service';
-import { DownloadProgressDto, DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../../core/api.models';
+import { VideoService, DownloadService } from '../../../core/services';
+import { DownloadProgressDto, DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../../core/models';
 
 interface VideoFormat {
   id: string;
@@ -69,7 +69,8 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   constructor(
     route: ActivatedRoute,
     private readonly router: Router,
-    private readonly api: ApiService
+    private readonly videoService: VideoService,
+    private readonly downloadService: DownloadService
   ) {
     const idValue = Number.parseInt(route.snapshot.params['id'] ?? '0', 10);
     this.videoId = Number.isNaN(idValue) ? 0 : idValue;
@@ -124,7 +125,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.showToast(`Starting download: ${format.quality} ${format.format} (${format.size})`);
 
     this.subs.add(
-      this.api.downloadVideo(this.video.id, format.id, format.quality).subscribe({
+      this.downloadService.downloadVideo(this.video.id, format.id, format.quality).subscribe({
         next: () => {
           this.showToast('Download started. Processing in background...');
           this.startProgressPolling();
@@ -160,7 +161,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.progressPollSub?.unsubscribe();
 
     this.progressPollSub = interval(1500).pipe(
-      switchMap(() => this.api.getDownloadProgress(this.videoId)),
+      switchMap(() => this.downloadService.getProgress(this.videoId)),
       takeWhile((progress) => progress.hasActiveJob, true)
     ).subscribe({
       next: (progress) => {
@@ -235,7 +236,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.subs.add(
-      this.api.getVideo(this.videoId).subscribe({
+      this.videoService.getVideo(this.videoId).subscribe({
         next: (video) => {
           this.video = {
             id: video.id,
@@ -272,7 +273,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   private checkForActiveDownload(): void {
     this.subs.add(
-      this.api.getDownloadProgress(this.videoId).subscribe({
+      this.downloadService.getProgress(this.videoId).subscribe({
         next: (progress) => {
           if (progress.hasActiveJob) {
             this.isDownloading = true;
@@ -291,7 +292,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.formatsError = '';
 
     this.subs.add(
-      this.api.getVideoFormats(this.videoId).subscribe({
+      this.downloadService.getFormats(this.videoId).subscribe({
         next: (formats) => {
           this.formats = formats.map((format) => this.mapFormat(format));
           this.selectedFormat = this.formats[0]?.id ?? '';
@@ -309,7 +310,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   private loadDownloadStatus(): void {
     this.subs.add(
-      this.api.getDownloadStatus(this.videoId).subscribe({
+      this.downloadService.getStatus(this.videoId).subscribe({
         next: (status) => {
           this.downloadStatus = status;
 

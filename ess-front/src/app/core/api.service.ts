@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   AddPlaylistToRoadmapDto,
-  ChannelDto,
   CreateFieldDto,
   CreateRoadmapDto,
   CreateRoadmapNodeDto,
@@ -33,7 +32,7 @@ import {
   VideoFormatDto,
   VideoListItemDto,
   VideoStatus
-} from './api.models';
+} from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../../core/api.service';
-import { DashboardDto } from '../../../core/api.models';
+import { DashboardService } from '../../../core/services';
+import { DashboardDto } from '../../../core/models';
 
 interface TopicData {
   topic: string;
@@ -23,7 +23,7 @@ export class AnalyticsPageComponent {
   errorMessage = '';
   dashboard?: DashboardDto;
 
-  constructor(private readonly api: ApiService) {
+  constructor(private readonly dashboardService: DashboardService) {
     this.loadDashboard();
   }
 
@@ -64,7 +64,7 @@ export class AnalyticsPageComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.api.getDashboard().subscribe({
+    this.dashboardService.getDashboard().subscribe({
       next: (dashboard) => {
         this.dashboard = dashboard;
         this.isLoading = false;

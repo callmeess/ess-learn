@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
-import { ApiService } from '../../../core/api.service';
-import { VideoListItemDto } from '../../../core/api.models';
+import { VideoService, DownloadService } from '../../../core/services';
+import { VideoListItemDto } from '../../../core/models';
 
 interface Video {
   id: number;
@@ -38,7 +38,10 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
   private loadSub?: Subscription;
   private apiSubs: Subscription[] = [];
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly videoService: VideoService,
+    private readonly downloadService: DownloadService
+  ) {}
 
   ngOnInit(): void {
     this.loadVideos();
@@ -54,7 +57,7 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.loadSub?.unsubscribe();
 
-    this.loadSub = this.api.getVideos().subscribe({
+    this.loadSub = this.videoService.getVideos().subscribe({
       next: (videos) => {
         this.allVideos = videos.map((v) => this.mapVideo(v));
         this.isLoading = false;
@@ -102,7 +105,7 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
 
     video.isDownloading = true;
 
-    this.api.getVideoFormats(video.id).subscribe({
+    this.downloadService.getFormats(video.id).subscribe({
       next: (formats) => {
         if (formats.length === 0) {
           video.isDownloading = false;
@@ -110,7 +113,7 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
         }
 
         const bestFormat = formats[0];
-        this.api.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
+        this.downloadService.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
           next: () => {
             this.pollDownloadProgress(video);
           },
@@ -127,7 +130,7 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
 
   private pollDownloadProgress(video: Video): void {
     const poll$ = interval(2000).pipe(
-      switchMap(() => this.api.getDownloadProgress(video.id)),
+      switchMap(() => this.downloadService.getProgress(video.id)),
       takeWhile((p) => p.hasActiveJob, true)
     );
 

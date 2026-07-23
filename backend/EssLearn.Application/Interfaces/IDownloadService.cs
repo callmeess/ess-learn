@@ -7,6 +7,6 @@ public interface IDownloadService
     Task<List<VideoFormatDto>> GetFormatsAsync(int videoId);
     Task<DownloadedVideoDto> DownloadVideoAsync(int videoId, DownloadVideoDto dto);
     Task DeleteDownloadAsync(int videoId);
-    Task<object> GetDownloadStatusAsync(int videoId);
-    Task<object> GetDownloadProgressAsync(int videoId);
+    Task<DownloadStatusResponseDto> GetDownloadStatusAsync(int videoId);
+    Task<DownloadProgressResponseDto> GetDownloadProgressAsync(int videoId);
 }

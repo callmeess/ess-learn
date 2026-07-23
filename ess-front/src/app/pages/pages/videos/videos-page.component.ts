@@ -4,8 +4,8 @@ import { RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 import { SearchStateService } from '../../../search-state.service';
-import { ApiService } from '../../../core/api.service';
-import { VideoListItemDto, VideoStatus } from '../../../core/api.models';
+import { VideoService, DownloadService, StreamingService } from '../../../core/services';
+import { VideoListItemDto, VideoStatus } from '../../../core/models';
 
 interface Video {
   id: number;
@@ -66,7 +66,9 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly searchState: SearchStateService,
-    private readonly api: ApiService
+    private readonly videoService: VideoService,
+    private readonly downloadService: DownloadService,
+    private readonly streamingService: StreamingService
   ) {}
 
   ngOnInit(): void {
@@ -93,7 +95,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
     video.isDownloading = true;
 
-    this.api.getVideoFormats(video.id).subscribe({
+    this.downloadService.getFormats(video.id).subscribe({
       next: (formats) => {
         if (formats.length === 0) {
           video.isDownloading = false;
@@ -101,7 +103,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
         }
 
         const bestFormat = formats[0];
-        this.api.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
+        this.downloadService.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
           next: () => {
             this.pollDownloadProgress(video);
           },
@@ -135,7 +137,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
     video.isTranscoding = true;
 
-    this.api.forceTranscode(video.id).subscribe({
+    this.streamingService.forceTranscode(video.id).subscribe({
       next: () => {
         this.pollTranscodeProgress(video);
       },
@@ -152,7 +154,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
     if (!video.downloaded) return;
 
-    this.api.deleteDownload(video.id).subscribe({
+    this.downloadService.deleteDownload(video.id).subscribe({
       next: () => {
         video.downloaded = false;
       }
@@ -172,7 +174,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
   private pollDownloadProgress(video: Video): void {
     const poll$ = interval(2000).pipe(
-      switchMap(() => this.api.getDownloadProgress(video.id)),
+      switchMap(() => this.downloadService.getProgress(video.id)),
       takeWhile((p) => p.hasActiveJob, true)
     );
 
@@ -195,7 +197,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
 
   private pollTranscodeProgress(video: Video): void {
     const poll$ = interval(2000).pipe(
-      switchMap(() => this.api.getStreamingStatus(video.id)),
+      switchMap(() => this.streamingService.getStatus(video.id)),
       takeWhile((s) => s.isTranscoding, true)
     );
 
@@ -218,7 +220,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.loadSub?.unsubscribe();
 
-    this.loadSub = this.api.getVideos().subscribe({
+    this.loadSub = this.videoService.getVideos().subscribe({
       next: (videos) => {
         this.videos = videos.map((video) => this.mapVideo(video));
         this.isLoading = false;
