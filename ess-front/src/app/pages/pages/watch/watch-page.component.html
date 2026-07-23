@@ -1,0 +1,95 @@
+<section class="watch-layout">
+  <div class="watch-player-section">
+    <div class="player-container">
+      <video
+        #videoElement
+        class="video-player"
+        controls
+        preload="metadata"
+        [attr.poster]="currentVideo?.thumbnailUrl"
+      ></video>
+
+      <div class="transcoding-overlay" *ngIf="!isTranscoded && !videoLoading && !errorMessage">
+        <div class="transcoding-spinner"></div>
+        <p *ngIf="isDownloading">Downloading video... {{ downloadProgress }}%</p>
+        <p *ngIf="!isDownloading && isTranscoding">Processing video... {{ transcodeProgress | number:'1.0-0' }}%</p>
+        <p *ngIf="!isDownloading && !isTranscoding && !isDownloaded">This video needs to be downloaded before it can be streamed</p>
+        <p *ngIf="!isDownloading && !isTranscoding && isDownloaded">Waiting for transcoding to begin...</p>
+        <div class="transcoding-progress" *ngIf="isDownloading || isTranscoding">
+          <div class="transcoding-progress-fill" [style.width.%]="isDownloading ? downloadProgress : transcodeProgress"></div>
+        </div>
+        <button
+          *ngIf="!isDownloading && !isTranscoding && !isDownloaded"
+          type="button"
+          class="download-btn"
+          (click)="downloadForStreaming()"
+        >
+          Download to Watch
+        </button>
+      </div>
+
+      <div class="loading-overlay" *ngIf="videoLoading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <div class="video-info" *ngIf="currentVideo">
+      <div class="video-info-row">
+        <div class="video-info-left">
+          <h1 class="video-title">{{ currentVideo.title }}</h1>
+          <div class="video-meta">
+            <span *ngIf="getVideoIndex() > 0">Video {{ getVideoIndex() }} of {{ totalCount }}</span>
+            <span *ngIf="currentVideo.durationSeconds > 0">{{ formatDuration(currentVideo.durationSeconds) }}</span>
+            <span *ngIf="getWatchedPercent() > 0">{{ getWatchedPercent() }}% watched</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-progress-bar" *ngIf="getWatchedPercent() > 0">
+        <div class="video-progress-fill" [style.width.%]="getWatchedPercent()"></div>
+      </div>
+    </div>
+
+    <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  </div>
+
+  <div class="watch-playlist-sidebar" *ngIf="playlist.length > 0">
+    <div class="playlist-header">
+      <h3 class="playlist-title">{{ playlistTitle }}</h3>
+      <span class="playlist-count">{{ playlist.length }} / {{ totalCount }}</span>
+    </div>
+
+    <div class="playlist-items" (scroll)="onVideoScroll($event)">
+      <div
+        *ngFor="let video of playlist; let i = index"
+        class="playlist-item"
+        [class.active]="video.id === currentVideoId"
+        (click)="selectVideo(video)"
+      >
+        <div class="playlist-item-thumb">
+          <img [src]="video.thumbnailUrl" [alt]="video.title" loading="lazy" />
+          <span class="playlist-item-duration">{{ formatDuration(video.durationSeconds) }}</span>
+          <div class="playlist-item-progress-bar">
+            <div class="playlist-item-progress-fill" [style.width.%]="getProgressPercent(video)"></div>
+          </div>
+        </div>
+        <div class="playlist-item-info">
+          <p class="playlist-item-title">{{ video.title }}</p>
+          <p class="playlist-item-channel" *ngIf="video.channelTitle">{{ video.channelTitle }}</p>
+          <p class="playlist-item-meta">
+            <span *ngIf="video.isDownloaded" class="downloaded-badge">Downloaded</span>
+          </p>
+        </div>
+      </div>
+
+      <div #scrollSentinel class="scroll-sentinel">
+        <span *ngIf="loadingPage" class="loading-more">Loading more videos...</span>
+        <span *ngIf="!hasMoreVideos && !loadingPage && playlist.length > 0" class="end-of-list">End of playlist</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="watch-empty" *ngIf="!videoLoading && !errorMessage && playlist.length === 0 && !currentVideo">
+    <p>No playlist data available.</p>
+  </div>
+</section>

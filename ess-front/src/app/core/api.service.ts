@@ -16,12 +16,15 @@ import {
   ImportPlaylistDto,
   ImportResultDto,
   ImportVideoDto,
+  PaginatedVideosDto,
   PlaylistDetailDto,
   PlaylistDto,
   ProgressDto,
   RoadmapDetailDto,
   RoadmapListItemDto,
   RoadmapNodeDto,
+  StreamingStatusDto,
+  TranscodeResultDto,
   UpdateFieldDto,
   UpdateNodeStatusDto,
   UpdateRoadmapDto,
@@ -181,5 +184,22 @@ export class ApiService {
 
   importPlaylist(dto: ImportPlaylistDto): Observable<ImportResultDto> {
     return this.http.post<ImportResultDto>(`${this.baseUrl}/api/import/playlist`, dto);
+  }
+
+  // Streaming
+  getStreamingStatus(videoId: number): Observable<StreamingStatusDto> {
+    return this.http.get<StreamingStatusDto>(`${this.baseUrl}/api/streaming/${videoId}/status`);
+  }
+
+  forceTranscode(videoId: number): Observable<TranscodeResultDto> {
+    return this.http.post<TranscodeResultDto>(`${this.baseUrl}/api/streaming/${videoId}/transcode`, {});
+  }
+
+  // Paginated playlist videos
+  getPlaylistVideos(playlistId: number, page: number, pageSize: number): Observable<PaginatedVideosDto> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
+    return this.http.get<PaginatedVideosDto>(`${this.baseUrl}/api/playlists/${playlistId}/videos`, { params });
   }
 }

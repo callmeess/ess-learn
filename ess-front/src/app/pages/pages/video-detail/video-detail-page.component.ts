@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 import { ApiService } from '../../../core/api.service';
@@ -46,7 +46,6 @@ interface VideoDetail {
 export class VideoDetailPageComponent implements OnInit, OnDestroy {
   readonly videoId: number;
   selectedFormat = '';
-  isPlaying = false;
   isDownloading = false;
   isLoading = false;
   formatsLoading = false;
@@ -69,6 +68,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   constructor(
     route: ActivatedRoute,
+    private readonly router: Router,
     private readonly api: ApiService
   ) {
     const idValue = Number.parseInt(route.snapshot.params['id'] ?? '0', 10);
@@ -104,26 +104,9 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   }
 
   togglePlay(): void {
-    this.isPlaying = !this.isPlaying;
-
-    if (!this.video || !this.isPlaying) {
-      return;
+    if (this.video) {
+      this.router.navigate(['/watch', this.video.id]);
     }
-
-    const nextWatched = Math.min(this.video.durationSeconds, this.video.watchedSeconds + 30);
-    this.subs.add(
-      this.api.updateVideoProgress(this.video.id, nextWatched, VideoStatus.InProgress).subscribe({
-        next: (progress) => {
-          if (!this.video) {
-            return;
-          }
-
-          this.video.watchedSeconds = progress.watchedSeconds;
-          this.video.status = this.downloadStatus.isDownloaded ? 'downloaded' : 'in-progress';
-          this.video.statusLabel = this.statusLabel(this.video.status, this.video.watchedSeconds, this.video.durationSeconds);
-        }
-      })
-    );
   }
 
   downloadVideo(): void {

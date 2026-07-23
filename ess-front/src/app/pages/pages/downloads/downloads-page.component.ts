@@ -1,18 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
+import { ApiService } from '../../../core/api.service';
+import { VideoListItemDto } from '../../../core/api.models';
 
-type DownloadStatus = 'downloading' | 'completed' | 'paused' | 'failed' | 'queued';
-
-interface DownloadItem {
-  id: string;
+interface Video {
+  id: number;
   title: string;
   channel: string;
-  progress: number;
-  size: string;
-  totalSize: string;
-  speed: string;
-  eta: string;
-  status: DownloadStatus;
+  playlist: string;
+  duration: string;
+  downloaded: boolean;
+  isDownloading?: boolean;
+  downloadProgress?: number;
+  thumbnailUrl: string | null;
 }
 
 @Component({
@@ -20,96 +24,163 @@ interface DownloadItem {
   templateUrl: './downloads-page.component.html',
   styleUrls: ['./downloads-page.component.css'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule, RouterModule]
 })
-export class DownloadsPageComponent {
+export class DownloadsPageComponent implements OnInit, OnDestroy {
   tab: 'active' | 'completed' = 'active';
+  searchQuery = '';
+  filterPlaylist = '';
+  filterChannel = '';
+  isLoading = false;
+  errorMessage = '';
+  allVideos: Video[] = [];
 
-  readonly activeDownloads: DownloadItem[] = [
-    {
-      id: '1',
-      title: 'Advanced React Hooks Deep Dive',
-      channel: 'Web Dev Simplified',
-      progress: 67,
-      size: '420 MB',
-      totalSize: '625 MB',
-      speed: '5.2 MB/s',
-      eta: '00:39',
-      status: 'downloading'
-    },
-    {
-      id: '2',
-      title: 'System Design Fundamentals',
-      channel: 'Gaurav Sen',
-      progress: 45,
-      size: '285 MB',
-      totalSize: '635 MB',
-      speed: '-',
-      eta: '-',
-      status: 'paused'
-    },
-    {
-      id: '3',
-      title: 'TypeScript 5.0 New Features',
-      channel: 'Matt Pocock',
-      progress: 23,
-      size: '145 MB',
-      totalSize: '630 MB',
-      speed: '-',
-      eta: '-',
-      status: 'failed'
-    },
-    {
-      id: '4',
-      title: 'Database Indexing Strategies',
-      channel: 'Hussein Nasser',
-      progress: 0,
-      size: '0 MB',
-      totalSize: '890 MB',
-      speed: '-',
-      eta: '-',
-      status: 'queued'
-    }
-  ];
+  private loadSub?: Subscription;
+  private apiSubs: Subscription[] = [];
 
-  readonly completedDownloads: DownloadItem[] = [
-    {
-      id: 'c1',
-      title: 'Kubernetes for Beginners',
-      channel: 'TechWorld with Nana',
-      progress: 100,
-      size: '1.5 GB',
-      totalSize: '1.5 GB',
-      speed: '-',
-      eta: '-',
-      status: 'completed'
-    },
-    {
-      id: 'c2',
-      title: 'React Server Components Explained',
-      channel: 'Fireship',
-      progress: 100,
-      size: '425 MB',
-      totalSize: '425 MB',
-      speed: '-',
-      eta: '-',
-      status: 'completed'
-    }
-  ];
+  constructor(private readonly api: ApiService) {}
 
-  get activeCount(): number {
-    return this.activeDownloads.filter((item) => item.status === 'downloading' || item.status === 'queued').length;
+  ngOnInit(): void {
+    this.loadVideos();
   }
 
-  get pausedCount(): number {
-    return this.activeDownloads.filter((item) => item.status === 'paused').length;
+  ngOnDestroy(): void {
+    this.loadSub?.unsubscribe();
+    this.apiSubs.forEach((sub) => sub.unsubscribe());
   }
 
-  get failedCount(): number {
-    return this.activeDownloads.filter((item) => item.status === 'failed').length;
+  loadVideos(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.loadSub?.unsubscribe();
+
+    this.loadSub = this.api.getVideos().subscribe({
+      next: (videos) => {
+        this.allVideos = videos.map((v) => this.mapVideo(v));
+        this.isLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'Unable to load videos. Make sure the API is running on port 5083.';
+        this.isLoading = false;
+      }
+    });
   }
 
-  statusClass(status: DownloadStatus): string {
-    return `status ${status}`;
+  get activeDownloads(): Video[] {
+    return this.applyFilters(this.allVideos.filter((v) => !v.downloaded));
+  }
+
+  get completedDownloads(): Video[] {
+    return this.applyFilters(this.allVideos.filter((v) => v.downloaded));
+  }
+
+  get availableCount(): number {
+    return this.allVideos.filter((v) => !v.downloaded).length;
+  }
+
+  get downloadedCount(): number {
+    return this.allVideos.filter((v) => v.downloaded).length;
+  }
+
+  get downloadingCount(): number {
+    return this.allVideos.filter((v) => v.isDownloading).length;
+  }
+
+  get uniquePlaylists(): string[] {
+    return [...new Set(this.allVideos.map((v) => v.playlist))].sort();
+  }
+
+  get uniqueChannels(): string[] {
+    return [...new Set(this.allVideos.map((v) => v.channel))].sort();
+  }
+
+  quickDownload(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (video.isDownloading || video.downloaded) return;
+
+    video.isDownloading = true;
+
+    this.api.getVideoFormats(video.id).subscribe({
+      next: (formats) => {
+        if (formats.length === 0) {
+          video.isDownloading = false;
+          return;
+        }
+
+        const bestFormat = formats[0];
+        this.api.downloadVideo(video.id, bestFormat.formatId, bestFormat.quality).subscribe({
+          next: () => {
+            this.pollDownloadProgress(video);
+          },
+          error: () => {
+            video.isDownloading = false;
+          }
+        });
+      },
+      error: () => {
+        video.isDownloading = false;
+      }
+    });
+  }
+
+  private pollDownloadProgress(video: Video): void {
+    const poll$ = interval(2000).pipe(
+      switchMap(() => this.api.getDownloadProgress(video.id)),
+      takeWhile((p) => p.hasActiveJob, true)
+    );
+
+    this.apiSubs.push(
+      poll$.subscribe({
+        next: (progress) => {
+          video.downloadProgress = progress.progress;
+          if (progress.status === 'Completed') {
+            video.downloaded = true;
+            video.isDownloading = false;
+          } else if (progress.status === 'Failed') {
+            video.isDownloading = false;
+          }
+        },
+        error: () => {
+          video.isDownloading = false;
+        }
+      })
+    );
+  }
+
+  private applyFilters(videos: Video[]): Video[] {
+    const query = this.searchQuery.trim().toLowerCase();
+
+    return videos.filter((video) => {
+      const searchMatch = !query ||
+        video.title.toLowerCase().includes(query) ||
+        video.channel.toLowerCase().includes(query) ||
+        video.playlist.toLowerCase().includes(query);
+
+      const playlistMatch = !this.filterPlaylist || video.playlist === this.filterPlaylist;
+      const channelMatch = !this.filterChannel || video.channel === this.filterChannel;
+
+      return searchMatch && playlistMatch && channelMatch;
+    });
+  }
+
+  private mapVideo(video: VideoListItemDto): Video {
+    return {
+      id: video.id,
+      title: video.title,
+      channel: video.channelTitle ?? 'Unknown Channel',
+      playlist: video.playlistTitle,
+      duration: this.formatDuration(video.durationSeconds),
+      downloaded: video.isDownloaded,
+      thumbnailUrl: video.thumbnailUrl
+    };
+  }
+
+  private formatDuration(totalSeconds: number): string {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 }

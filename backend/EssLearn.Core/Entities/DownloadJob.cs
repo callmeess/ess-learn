@@ -6,7 +6,8 @@ public enum DownloadJobStatus
     Downloading = 1,
     Uploading = 2,
     Completed = 3,
-    Failed = 4
+    Failed = 4,
+    Transcoding = 5
 }
 
 public class DownloadJob

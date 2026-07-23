@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
@@ -22,6 +22,7 @@ interface Video {
   thumbGrad: [string, string, string];
   thumbEmoji: string;
   isDownloading?: boolean;
+  isTranscoding?: boolean;
 }
 
 type SortBy = 'recent' | 'duration' | 'alpha' | 'progress';
@@ -41,6 +42,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
   videos: Video[] = [];
+  openMenuId: number | null = null;
 
   readonly categories: Array<{ value: FilterBy; label: string }> = [
     { value: 'all', label: 'All Videos' },
@@ -114,6 +116,60 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleMenu(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openMenuId = this.openMenuId === video.id ? null : video.id;
+  }
+
+  closeMenu(): void {
+    this.openMenuId = null;
+  }
+
+  forceTranscode(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openMenuId = null;
+
+    if (video.isTranscoding || !video.downloaded) return;
+
+    video.isTranscoding = true;
+
+    this.api.forceTranscode(video.id).subscribe({
+      next: () => {
+        this.pollTranscodeProgress(video);
+      },
+      error: () => {
+        video.isTranscoding = false;
+      }
+    });
+  }
+
+  deleteDownload(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openMenuId = null;
+
+    if (!video.downloaded) return;
+
+    this.api.deleteDownload(video.id).subscribe({
+      next: () => {
+        video.downloaded = false;
+      }
+    });
+  }
+
+  viewDetails(event: MouseEvent, video: Video): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openMenuId = null;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openMenuId = null;
+  }
+
   private pollDownloadProgress(video: Video): void {
     const poll$ = interval(2000).pipe(
       switchMap(() => this.api.getDownloadProgress(video.id)),
@@ -132,6 +188,26 @@ export class VideosPageComponent implements OnInit, OnDestroy {
         },
         error: () => {
           video.isDownloading = false;
+        }
+      })
+    );
+  }
+
+  private pollTranscodeProgress(video: Video): void {
+    const poll$ = interval(2000).pipe(
+      switchMap(() => this.api.getStreamingStatus(video.id)),
+      takeWhile((s) => s.isTranscoding, true)
+    );
+
+    this.apiSubs.push(
+      poll$.subscribe({
+        next: (status) => {
+          if (!status.isTranscoding) {
+            video.isTranscoding = false;
+          }
+        },
+        error: () => {
+          video.isTranscoding = false;
         }
       })
     );

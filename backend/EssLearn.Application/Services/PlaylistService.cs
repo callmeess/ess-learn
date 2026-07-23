@@ -62,6 +62,39 @@ public class PlaylistService : IPlaylistService
         }
     }
 
+    public async Task<PaginatedVideosDto> GetVideosAsync(int playlistId, int page = 1, int pageSize = 10)
+    {
+        var query = _dbContext.Videos
+            .Include(v => v.Progress)
+            .Include(v => v.DownloadedVideo)
+            .Include(v => v.Playlist).ThenInclude(p => p.Channel)
+            .Where(v => v.PlaylistId == playlistId)
+            .OrderBy(v => v.Position);
+
+        var totalCount = await query.CountAsync();
+        var videos = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        var items = videos.Select(v => new VideoListItemDto(
+            v.Id,
+            v.PlaylistId,
+            v.Playlist.FieldId,
+            v.Title,
+            v.ThumbnailUrl,
+            v.Url,
+            v.DurationSeconds,
+            v.Position,
+            v.Progress?.Status ?? VideoStatus.NotStarted,
+            v.Progress?.WatchedSeconds ?? 0,
+            v.Playlist.Title,
+            v.Playlist.Channel?.Title,
+            v.DownloadedVideo is not null,
+            v.PublishedAt,
+            v.CreatedAt
+        )).ToList();
+
+        return new PaginatedVideosDto(items, totalCount, page, pageSize, page * pageSize < totalCount);
+    }
+
     private static PlaylistDto MapPlaylist(Playlist p)
     {
         var videos = p.Videos.ToList();

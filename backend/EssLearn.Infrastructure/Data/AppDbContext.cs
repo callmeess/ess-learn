@@ -19,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<StorageIntegrity> StorageIntegrities => Set<StorageIntegrity>();
     public DbSet<BlobStorageLog> BlobStorageLogs => Set<BlobStorageLog>();
     public DbSet<DownloadJob> DownloadJobs => Set<DownloadJob>();
+    public DbSet<TranscodedVideo> TranscodedVideos => Set<TranscodedVideo>();
+    public DbSet<TranscodeJob> TranscodeJobs => Set<TranscodeJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -145,6 +147,28 @@ public class AppDbContext : DbContext
             e.HasKey(rp => new { rp.NodeId, rp.PrerequisiteId });
             e.HasOne(rp => rp.Node).WithMany(n => n.PrerequisitesOf).HasForeignKey(rp => rp.NodeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(rp => rp.Prerequisite).WithMany(n => n.DependentsOf).HasForeignKey(rp => rp.PrerequisiteId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TranscodedVideo>(e =>
+        {
+            e.HasKey(tv => tv.Id);
+            e.Property(tv => tv.HlsManifestBlobPath).HasMaxLength(1000).IsRequired();
+            e.Property(tv => tv.HlsSegmentsBlobPath).HasMaxLength(1000).IsRequired();
+            e.Property(tv => tv.BlobBucket).HasMaxLength(100).IsRequired();
+            e.HasIndex(tv => tv.VideoId).IsUnique();
+            e.HasIndex(tv => tv.DownloadedVideoId).IsUnique();
+            e.HasOne(tv => tv.Video).WithOne().HasForeignKey<TranscodedVideo>(tv => tv.VideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(tv => tv.DownloadedVideo).WithOne().HasForeignKey<TranscodedVideo>(tv => tv.DownloadedVideoId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TranscodeJob>(e =>
+        {
+            e.HasKey(tj => tj.Id);
+            e.Property(tj => tj.ErrorMessage).HasMaxLength(2000);
+            e.HasIndex(tj => tj.VideoId);
+            e.HasIndex(tj => tj.Status);
+            e.HasOne(tj => tj.Video).WithMany().HasForeignKey(tj => tj.VideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(tj => tj.DownloadedVideo).WithMany().HasForeignKey(tj => tj.DownloadedVideoId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

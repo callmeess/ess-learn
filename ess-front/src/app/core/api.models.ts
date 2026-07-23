@@ -270,3 +270,23 @@ export interface ImportResultDto {
   videosImported: number;
   channelTitle: string | null;
 }
+
+export interface PaginatedVideosDto {
+  videos: VideoListItemDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface StreamingStatusDto {
+  isTranscoded: boolean;
+  isTranscoding: boolean;
+  progressPercent: number;
+  hlsManifestUrl: string | null;
+}
+
+export interface TranscodeResultDto {
+  jobId: number;
+  status: string;
+}

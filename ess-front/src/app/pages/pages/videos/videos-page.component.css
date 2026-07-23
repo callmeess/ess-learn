@@ -230,6 +230,68 @@
   font-size: 1.1rem;
   line-height: 1;
   padding: 0.1rem 0.2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.vid-menu-btn:hover,
+.vid-menu-btn.open {
+  background: rgba(100, 116, 139, 0.12);
+  color: #334155;
+}
+
+.vid-menu-wrap {
+  position: relative;
+}
+
+.vid-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 170px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  z-index: 20;
+  padding: 0.3rem 0;
+}
+
+.vid-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.vid-dropdown-item:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.vid-dropdown-item:disabled,
+.vid-dropdown-item.disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dropdown-icon {
+  font-size: 0.85rem;
+  width: 1.1rem;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .vid-actions {

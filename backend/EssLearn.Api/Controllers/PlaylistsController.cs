@@ -23,6 +23,14 @@ public class PlaylistsController(IPlaylistService playlistService) : ControllerB
         return Ok(playlist);
     }
 
+    [HttpGet("{id}/videos")]
+    public async Task<ActionResult<PaginatedVideosDto>> GetVideos(
+        int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await playlistService.GetVideosAsync(id, page, pageSize);
+        return Ok(result);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

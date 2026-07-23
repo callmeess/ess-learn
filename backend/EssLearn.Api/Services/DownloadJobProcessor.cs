@@ -165,9 +165,20 @@ public class DownloadJobProcessor : BackgroundService
             pendingJob.CompletedAt = DateTime.UtcNow;
             pendingJob.UpdatedAt = DateTime.UtcNow;
 
+            // Step 5: Create transcode job to convert to HLS
+            var transcodeJob = new TranscodeJob
+            {
+                VideoId = video.Id,
+                DownloadedVideoId = downloadedVideo.Id,
+                Status = TranscodeJobStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.TranscodeJobs.Add(transcodeJob);
+
             await dbContext.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Download job {JobId} completed. Stored at {BlobPath}", pendingJob.Id, uploadResult.BlobPath);
+            _logger.LogInformation("Download job {JobId} completed. Stored at {BlobPath}. Transcode job {TranscodeJobId} created.",
+                pendingJob.Id, uploadResult.BlobPath, transcodeJob.Id);
 
             // Clean up temp file
             CleanupTempFile(filePath);
