@@ -96,6 +96,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             playlistTitle: '',
             channelTitle: null,
             isDownloaded: false,
+            isTranscoded: video.isTranscoded,
             publishedAt: null,
             createdAt: new Date().toISOString()
           };

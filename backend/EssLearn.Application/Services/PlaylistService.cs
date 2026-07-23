@@ -38,6 +38,7 @@ public class PlaylistService : IPlaylistService
         var playlist = await _dbContext.Playlists
             .Include(p => p.Videos.OrderBy(v => v.Position)).ThenInclude(v => v.Progress)
             .Include(p => p.Videos).ThenInclude(v => v.DownloadedVideo)
+            .Include(p => p.Videos).ThenInclude(v => v.TranscodedVideos)
             .Include(p => p.Channel)
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -59,6 +60,7 @@ public class PlaylistService : IPlaylistService
         var query = _dbContext.Videos
             .Include(v => v.Progress)
             .Include(v => v.DownloadedVideo)
+            .Include(v => v.TranscodedVideos)
             .Include(v => v.Playlist).ThenInclude(p => p.Channel)
             .Where(v => v.PlaylistId == playlistId)
             .OrderBy(v => v.Position);

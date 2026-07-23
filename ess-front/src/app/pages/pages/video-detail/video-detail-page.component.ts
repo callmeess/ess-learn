@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
-import { VideoService, DownloadService } from '../../../core/services';
+import { VideoService, DownloadService, StreamingService } from '../../../core/services';
 import { DownloadProgressDto, DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../../core/models';
 
 interface VideoFormat {
@@ -56,11 +56,16 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   toastVisible = false;
   private toastTimer?: number;
   private readonly subs = new Subscription();
-  private downloadStatus: DownloadStatusDto = { isDownloaded: false, download: null };
+  public downloadStatus: DownloadStatusDto = { isDownloaded: false, download: null };
 
   downloadProgress = 0;
   downloadStatusText = '';
   private progressPollSub?: Subscription;
+
+  isTranscoded = false;
+  isTranscoding = false;
+  transcodeProgress = 0;
+  private transcodePollSub?: Subscription;
 
   formats: VideoFormat[] = [];
 
@@ -70,7 +75,8 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     route: ActivatedRoute,
     private readonly router: Router,
     private readonly videoService: VideoService,
-    private readonly downloadService: DownloadService
+    private readonly downloadService: DownloadService,
+    private readonly streamingService: StreamingService
   ) {
     const idValue = Number.parseInt(route.snapshot.params['id'] ?? '0', 10);
     this.videoId = Number.isNaN(idValue) ? 0 : idValue;
@@ -83,6 +89,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subs.unsubscribe();
     this.progressPollSub?.unsubscribe();
+    this.transcodePollSub?.unsubscribe();
     if (this.toastTimer) {
       window.clearTimeout(this.toastTimer);
     }
@@ -91,6 +98,12 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   get selectedFormatSpec(): VideoFormat {
     const fallback = this.formats[0] ?? { id: '', label: 'No formats available', quality: 'N/A', format: 'N/A', fps: 'N/A', size: 'N/A' };
     return this.formats.find((format) => format.id === this.selectedFormat) ?? fallback;
+  }
+
+  get transcodeLabel(): string {
+    if (this.isTranscoded) return 'Transcoded';
+    if (this.isTranscoding) return `Transcoding ${this.transcodeProgress}%`;
+    return 'Not Transcoded';
   }
 
   setSelectedFormat(value: string): void {
@@ -142,6 +155,24 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
         }
       })
     );
+  }
+
+  forceTranscode(): void {
+    if (!this.downloadStatus.isDownloaded || this.isTranscoding || this.isTranscoded) return;
+
+    this.isTranscoding = true;
+    this.transcodeProgress = 0;
+    this.showToast('Starting transcoding...');
+
+    this.streamingService.forceTranscode(this.videoId).subscribe({
+      next: () => {
+        this.pollTranscodeProgress();
+      },
+      error: (err) => {
+        this.isTranscoding = false;
+        this.showToast(err.error?.message || 'Failed to start transcoding');
+      }
+    });
   }
 
   showToast(message: string): void {
@@ -199,6 +230,8 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
       this.downloadProgress = 0;
       this.downloadStatusText = '';
     }, 3000);
+
+    this.checkStreamingStatus();
   }
 
   private onDownloadFailed(errorMessage?: string): void {
@@ -287,6 +320,46 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     );
   }
 
+  private checkStreamingStatus(): void {
+    this.subs.add(
+      this.streamingService.getStatus(this.videoId).subscribe({
+        next: (status) => {
+          this.isTranscoded = status.isTranscoded;
+          this.isTranscoding = status.isTranscoding;
+          this.transcodeProgress = status.progressPercent;
+
+          if (status.isTranscoding) {
+            this.pollTranscodeProgress();
+          }
+        },
+        error: () => {}
+      })
+    );
+  }
+
+  private pollTranscodeProgress(): void {
+    this.transcodePollSub?.unsubscribe();
+
+    this.transcodePollSub = interval(3000).pipe(
+      switchMap(() => this.streamingService.getStatus(this.videoId)),
+      takeWhile((s) => s.isTranscoding, true)
+    ).subscribe({
+      next: (status) => {
+        this.transcodeProgress = status.progressPercent;
+        if (status.isTranscoded) {
+          this.isTranscoded = true;
+          this.isTranscoding = false;
+          this.showToast('Transcoding complete!');
+        } else if (!status.isTranscoding) {
+          this.isTranscoding = false;
+        }
+      },
+      error: () => {
+        this.isTranscoding = false;
+      }
+    });
+  }
+
   private loadFormats(): void {
     this.formatsLoading = true;
     this.formatsError = '';
@@ -321,6 +394,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
           if (status.isDownloaded) {
             this.video.status = 'downloaded';
             this.video.statusLabel = 'Downloaded';
+            this.checkStreamingStatus();
           }
         },
         error: () => {}

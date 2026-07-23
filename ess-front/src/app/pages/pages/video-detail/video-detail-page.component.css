@@ -415,6 +415,16 @@
 	color: #3b82f6;
 }
 
+.transcoding-progress-wrap {
+	margin-top: 0.5rem;
+}
+
+.transcoded-label {
+	color: #166534;
+	font-size: 0.82rem;
+	margin: 0;
+}
+
 @media (min-width: 1040px) {
 	.detail-layout {
 		grid-template-columns: 1fr 320px;

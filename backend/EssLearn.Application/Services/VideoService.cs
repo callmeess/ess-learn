@@ -24,6 +24,7 @@ public class VideoService : IVideoService
         var query = _dbContext.Videos
             .Include(v => v.Progress)
             .Include(v => v.DownloadedVideo)
+            .Include(v => v.TranscodedVideos)
             .Include(v => v.Playlist).ThenInclude(p => p.Channel)
             .AsQueryable();
 
@@ -46,6 +47,7 @@ public class VideoService : IVideoService
         var v = await _dbContext.Videos
             .Include(v => v.Progress)
             .Include(v => v.DownloadedVideo)
+            .Include(v => v.TranscodedVideos)
             .FirstOrDefaultAsync(v => v.Id == id);
 
         return v?.ToDto();

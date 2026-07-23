@@ -36,6 +36,7 @@
         <div *ngIf="!video.thumbnailUrl" class="thumb-emoji">{{ video.thumbEmoji }}</div>
         <span class="vid-duration">{{ video.duration }}</span>
         <span class="vid-dl-badge" *ngIf="video.downloaded">⬇</span>
+        <span class="vid-trans-badge" *ngIf="video.transcoded" title="Transcoded for streaming">⚡</span>
 
         <div class="vid-play-overlay">
           <div class="vid-play-btn">▶</div>
@@ -100,11 +101,12 @@
                 <button
                   type="button"
                   class="vid-dropdown-item"
-                  [disabled]="!video.downloaded || video.isTranscoding"
-                  [class.disabled]="!video.downloaded"
+                  [disabled]="!video.downloaded || video.isTranscoding || video.transcoded"
+                  [class.disabled]="!video.downloaded || video.transcoded"
                   (click)="forceTranscode($event, video)"
                 >
-                  <span class="dropdown-icon">⚡</span> {{ video.isTranscoding ? 'Transcoding...' : 'Force Transcode' }}
+                  <span class="dropdown-icon">⚡</span>
+                  {{ video.isTranscoding ? 'Transcoding...' : (video.transcoded ? 'Transcoded' : 'Force Transcode') }}
                 </button>
               </div>
             </div>

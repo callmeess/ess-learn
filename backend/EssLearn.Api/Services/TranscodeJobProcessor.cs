@@ -8,10 +8,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace EssLearn.Api.Services;
 
-public class TranscodeJobProcessor : BackgroundService
+public partial class TranscodeJobProcessor : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<TranscodeJobProcessor> _logger;
@@ -65,6 +68,24 @@ public class TranscodeJobProcessor : BackgroundService
         if (pendingJob == null)
             return;
 
+        if (pendingJob.DownloadedVideo is null)
+        {
+            _logger.LogError("Transcode job {JobId} has no associated DownloadedVideo.", pendingJob.Id);
+            pendingJob.Status = TranscodeJobStatus.Failed;
+            pendingJob.ErrorMessage = "Associated downloaded video not found.";
+            await dbContext.SaveChangesAsync(ct);
+            return;
+        }
+
+        if (pendingJob.Video?.Playlist is null)
+        {
+            _logger.LogError("Transcode job {JobId} has no associated Playlist.", pendingJob.Id);
+            pendingJob.Status = TranscodeJobStatus.Failed;
+            pendingJob.ErrorMessage = "Associated playlist not found.";
+            await dbContext.SaveChangesAsync(ct);
+            return;
+        }
+
         _logger.LogInformation("Processing transcode job {JobId} for video {VideoId}", pendingJob.Id, pendingJob.VideoId);
 
         pendingJob.Status = TranscodeJobStatus.Transcoding;
@@ -83,7 +104,12 @@ public class TranscodeJobProcessor : BackgroundService
             _logger.LogInformation("Downloading source video from {Bucket}/{Path}", pendingJob.DownloadedVideo.BlobBucket, sourcePath);
 
             var sourceStream = await blobStorage.DownloadFileAsync(pendingJob.DownloadedVideo.BlobBucket, sourcePath);
-            var inputPath = Path.Combine(tempDir, $"input.{pendingJob.DownloadedVideo.Container}");
+
+            var container = pendingJob.DownloadedVideo.Container;
+            if (string.IsNullOrWhiteSpace(container))
+                container = "mp4";
+
+            var inputPath = Path.Combine(tempDir, $"input.{container}");
 
             await using (var fileStream = File.Create(inputPath))
             {
@@ -107,10 +133,15 @@ public class TranscodeJobProcessor : BackgroundService
                              $"-hls_segment_filename \"{segmentPattern}\" " +
                              $"\"{manifestPath}\"";
 
-            await RunFfmpegAsync(ffmpegArgs, ct);
+            var totalDuration = pendingJob.Video.DurationSeconds;
+            await RunFfmpegAsync(ffmpegArgs, totalDuration, p =>
+            {
+                pendingJob.ProgressPercent = p;
+            }, ct);
 
             // Step 3: Upload HLS files to MinIO
             pendingJob.Status = TranscodeJobStatus.Uploading;
+            pendingJob.ProgressPercent = 0;
             await dbContext.SaveChangesAsync(ct);
 
             var video = pendingJob.Video;
@@ -119,8 +150,12 @@ public class TranscodeJobProcessor : BackgroundService
             var hlsSegmentsPrefix = BlobPathBuilder.HlsSegmentsPath(
                 video.Playlist.FieldId, video.PlaylistId, video.Id);
 
-            // Upload manifest
-            var manifestBytes = await File.ReadAllBytesAsync(manifestPath, ct);
+            // Rewrite segment paths in manifest to include segments/ prefix
+            // so HLS player resolves 000.ts → segments/000.ts to match the route
+            var manifestContent = await File.ReadAllTextAsync(manifestPath, ct);
+            manifestContent = ManifestSegmentPathRegex().Replace(manifestContent, "segments/$1");
+            var manifestBytes = Encoding.UTF8.GetBytes(manifestContent);
+
             using (var manifestStream = new MemoryStream(manifestBytes))
             {
                 var manifestResult = await blobStorage.UploadFileAsync(
@@ -200,7 +235,7 @@ public class TranscodeJobProcessor : BackgroundService
         }
     }
 
-    private static async Task RunFfmpegAsync(string arguments, CancellationToken ct)
+    private async Task RunFfmpegAsync(string arguments, int totalDurationSeconds, Action<double> onProgress, CancellationToken ct)
     {
         var ffmpegPath = await FindFfmpegAsync();
 
@@ -219,20 +254,56 @@ public class TranscodeJobProcessor : BackgroundService
 
         process.Start();
 
-        var stdout = await process.StandardOutput.ReadToEndAsync(ct);
-        var stderr = await process.StandardError.ReadToEndAsync(ct);
+        var stderrTask = ReadFfmpegProgressAsync(process, totalDurationSeconds, onProgress, ct);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
 
+        await Task.WhenAll(stderrTask, stdoutTask);
         await process.WaitForExitAsync(ct);
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"ffmpeg exited with code {process.ExitCode}: {stderr}");
+            throw new InvalidOperationException($"ffmpeg exited with code {process.ExitCode}");
         }
     }
 
+    private static async Task ReadFfmpegProgressAsync(Process process, int totalDurationSeconds, Action<double> onProgress, CancellationToken ct)
+    {
+        if (totalDurationSeconds <= 0)
+        {
+            await process.StandardError.ReadToEndAsync(ct);
+            return;
+        }
+
+        var timeRegex = FfmpegTimeRegex();
+        var lastReportedProgress = -1.0;
+
+        while (!process.StandardError.EndOfStream && !ct.IsCancellationRequested)
+        {
+            var line = await process.StandardError.ReadLineAsync(ct);
+            if (line == null)
+                break;
+
+            var match = timeRegex.Match(line);
+            if (match.Success && TimeSpan.TryParse(match.Groups[1].Value, CultureInfo.InvariantCulture, out var currentTime))
+            {
+                var progress = Math.Min(99.0, (currentTime.TotalSeconds / totalDurationSeconds) * 100.0);
+                if (Math.Abs(progress - lastReportedProgress) >= 1.0)
+                {
+                    onProgress(Math.Round(progress, 1));
+                    lastReportedProgress = progress;
+                }
+            }
+        }
+    }
+
+    [GeneratedRegex(@"time=(\d{2}:\d{2}:\d{2}\.\d{2})")]
+    private static partial Regex FfmpegTimeRegex();
+
+    [GeneratedRegex(@"^([\w-]+\.ts)$", RegexOptions.Multiline)]
+    private static partial Regex ManifestSegmentPathRegex();
+
     private static async Task<string> FindFfmpegAsync()
     {
-        // Check common paths
         string[] paths = ["/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "ffmpeg"];
         foreach (var path in paths)
         {
@@ -255,7 +326,6 @@ public class TranscodeJobProcessor : BackgroundService
             }
             catch
             {
-                // Continue to next path
             }
         }
 

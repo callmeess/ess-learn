@@ -18,6 +18,7 @@ export interface VideoListItemDto {
   playlistTitle: string;
   channelTitle: string | null;
   isDownloaded: boolean;
+  isTranscoded: boolean;
   publishedAt: string | null;
   createdAt: string;
 }
@@ -33,6 +34,7 @@ export interface VideoDto {
   position: number;
   status: VideoStatus;
   watchedSeconds: number;
+  isTranscoded: boolean;
 }
 
 export interface RecentVideoDto {

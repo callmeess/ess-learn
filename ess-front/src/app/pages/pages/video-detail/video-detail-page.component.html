@@ -103,6 +103,34 @@
         </div>
       </article>
 
+      <article class="panel-card" *ngIf="downloadStatus.isDownloaded">
+        <div class="panel-head">Transcoding</div>
+        <div class="panel-body">
+          <ng-container *ngIf="!isTranscoding && !isTranscoded">
+            <p class="formats-hint">Video is downloaded but not yet transcoded for streaming.</p>
+            <button type="button" class="btn-download" (click)="forceTranscode()">
+              Transcode Video
+            </button>
+          </ng-container>
+
+          <ng-container *ngIf="isTranscoding">
+            <div class="transcoding-progress-wrap">
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="transcodeProgress"></div>
+              </div>
+              <div class="progress-info">
+                <span class="progress-text">Transcoding...</span>
+                <span class="progress-percent">{{ transcodeProgress }}%</span>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="isTranscoded">
+            <p class="transcoded-label">Video is transcoded and ready for streaming.</p>
+          </ng-container>
+        </div>
+      </article>
+
       <article class="panel-card">
         <div class="panel-head">Video Stats</div>
         <div class="panel-body">

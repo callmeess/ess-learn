@@ -15,6 +15,7 @@ interface Video {
   date: string;
   playlist: string;
   downloaded: boolean;
+  transcoded: boolean;
   status: 'not-downloaded' | 'in-progress' | 'completed';
   statusLabel: string;
   watchProgress: number | null;
@@ -133,7 +134,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.openMenuId = null;
 
-    if (video.isTranscoding || !video.downloaded) return;
+    if (video.isTranscoding || !video.downloaded || video.transcoded) return;
 
     video.isTranscoding = true;
 
@@ -206,6 +207,9 @@ export class VideosPageComponent implements OnInit, OnDestroy {
         next: (status) => {
           if (!status.isTranscoding) {
             video.isTranscoding = false;
+            if (status.isTranscoded) {
+              video.transcoded = true;
+            }
           }
         },
         error: () => {
@@ -299,6 +303,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
       date: this.formatDate(video.publishedAt ?? video.createdAt),
       playlist: video.playlistTitle,
       downloaded: video.isDownloaded,
+      transcoded: video.isTranscoded,
       status,
       statusLabel: this.statusLabel(status, progress),
       watchProgress: progress,

@@ -19,4 +19,5 @@ public class Video
     public Playlist Playlist { get; set; } = null!;
     public VideoProgress? Progress { get; set; }
     public DownloadedVideo? DownloadedVideo { get; set; }
+    public ICollection<TranscodedVideo> TranscodedVideos { get; set; } = new List<TranscodedVideo>();
 }

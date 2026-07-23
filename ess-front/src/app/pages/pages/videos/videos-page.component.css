@@ -123,6 +123,21 @@
   z-index: 2;
 }
 
+.vid-trans-badge {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #a855f7;
+  color: #fff;
+  font-size: 0.75rem;
+  z-index: 2;
+}
+
 .vid-play-overlay {
   position: absolute;
   inset: 0;
