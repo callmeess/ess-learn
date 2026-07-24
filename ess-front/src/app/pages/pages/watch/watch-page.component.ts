@@ -101,6 +101,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             createdAt: new Date().toISOString()
           };
           this.seekToTime = video.watchedSeconds;
+          this.isTranscoded = video.isTranscoded;
           this.videoLoading = false;
 
           if (!this.playlistId) {
@@ -399,7 +400,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.seekToTime = video.watchedSeconds;
     this.isDownloaded = video.isDownloaded;
     this.isDownloading = false;
-    this.isTranscoded = false;
+    this.isTranscoded = video.isTranscoded;
     this.isTranscoding = false;
     this.destroyPlayer();
     this.checkDownloadStatus();
