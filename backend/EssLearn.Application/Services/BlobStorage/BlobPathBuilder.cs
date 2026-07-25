@@ -53,6 +53,21 @@ public static class BlobPathBuilder
         return $"uploads/{sessionId}/{fileName}";
     }
 
+    public static string HlsManifestPath(int fieldId, int playlistId, int videoId)
+    {
+        return $"hls/fields/{fieldId}/playlists/{playlistId}/{videoId}/master.m3u8";
+    }
+
+    public static string HlsSegmentsPath(int fieldId, int playlistId, int videoId)
+    {
+        return $"hls/fields/{fieldId}/playlists/{playlistId}/{videoId}/segments/";
+    }
+
+    public static string HlsSegmentPath(int fieldId, int playlistId, int videoId, string segmentName)
+    {
+        return $"hls/fields/{fieldId}/playlists/{playlistId}/{videoId}/segments/{segmentName}";
+    }
+
     public static int? ExtractFieldIdFromVideoPath(string path)
     {
         // Path: videos/fields/{fieldId}/...

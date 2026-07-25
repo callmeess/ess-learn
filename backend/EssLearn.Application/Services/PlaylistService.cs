@@ -1,4 +1,5 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
 using EssLearn.Core.Interfaces;
@@ -29,7 +30,7 @@ public class PlaylistService : IPlaylistService
             query = query.Where(p => p.FieldId == fieldId.Value);
 
         var playlists = await query.OrderByDescending(p => p.CreatedAt).ToListAsync();
-        return playlists.Select(MapPlaylist).ToList();
+        return playlists.Select(p => p.ToDto()).ToList();
     }
 
     public async Task<PlaylistDetailDto?> GetByIdAsync(int id)
@@ -37,19 +38,11 @@ public class PlaylistService : IPlaylistService
         var playlist = await _dbContext.Playlists
             .Include(p => p.Videos.OrderBy(v => v.Position)).ThenInclude(v => v.Progress)
             .Include(p => p.Videos).ThenInclude(v => v.DownloadedVideo)
+            .Include(p => p.Videos).ThenInclude(v => v.TranscodedVideos)
             .Include(p => p.Channel)
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        if (playlist is null) return null;
-
-        var videos = playlist.Videos.Select(v => new VideoDto(
-            v.Id, v.PlaylistId, v.YoutubeVideoId, v.Title, v.ThumbnailUrl, v.Url,
-            v.DurationSeconds, v.Position,
-            v.Progress?.Status ?? VideoStatus.NotStarted,
-            v.Progress?.WatchedSeconds ?? 0
-        )).ToList();
-
-        return new PlaylistDetailDto(MapPlaylist(playlist), videos);
+        return playlist?.ToDetailDto();
     }
 
     public async Task DeleteAsync(int id)
@@ -62,17 +55,21 @@ public class PlaylistService : IPlaylistService
         }
     }
 
-    private static PlaylistDto MapPlaylist(Playlist p)
+    public async Task<PaginatedVideosDto> GetVideosAsync(int playlistId, int page = 1, int pageSize = 10)
     {
-        var videos = p.Videos.ToList();
-        return new PlaylistDto(
-            p.Id, p.FieldId, p.Title, p.Description, p.ThumbnailUrl, p.SourceUrl,
-            videos.Count,
-            videos.Count(v => v.Progress?.Status == VideoStatus.Completed),
-            videos.Sum(v => v.DurationSeconds),
-            videos.Sum(v => v.Progress?.WatchedSeconds ?? 0),
-            p.Channel?.Title,
-            p.CreatedAt
-        );
+        var query = _dbContext.Videos
+            .Include(v => v.Progress)
+            .Include(v => v.DownloadedVideo)
+            .Include(v => v.TranscodedVideos)
+            .Include(v => v.Playlist).ThenInclude(p => p.Channel)
+            .Where(v => v.PlaylistId == playlistId)
+            .OrderBy(v => v.Position);
+
+        var totalCount = await query.CountAsync();
+        var videos = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        var items = videos.Select(v => v.ToListItemDto()).ToList();
+
+        return new PaginatedVideosDto(items, totalCount, page, pageSize, page * pageSize < totalCount);
     }
 }

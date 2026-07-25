@@ -6,66 +6,106 @@
 
   <div class="stats-grid">
     <article class="stat-card">
-      <p class="value">{{ activeCount }}</p>
-      <p class="label">Active</p>
+      <p class="value">{{ availableCount }}</p>
+      <p class="label">Available</p>
     </article>
     <article class="stat-card">
-      <p class="value">{{ completedDownloads.length }}</p>
-      <p class="label">Completed</p>
+      <p class="value">{{ downloadingCount }}</p>
+      <p class="label">Downloading</p>
     </article>
     <article class="stat-card">
-      <p class="value">{{ pausedCount }}</p>
-      <p class="label">Paused</p>
+      <p class="value">{{ downloadedCount }}</p>
+      <p class="label">Downloaded</p>
     </article>
     <article class="stat-card">
-      <p class="value">{{ failedCount }}</p>
-      <p class="label">Failed</p>
+      <p class="value">{{ allVideos.length }}</p>
+      <p class="label">Total</p>
     </article>
   </div>
 
   <div class="tabs">
     <button type="button" [class.active]="tab === 'active'" (click)="tab = 'active'">
-      Active ({{ activeDownloads.length }})
+      Available ({{ activeDownloads.length }})
     </button>
     <button type="button" [class.active]="tab === 'completed'" (click)="tab = 'completed'">
-      Completed ({{ completedDownloads.length }})
+      Downloaded ({{ completedDownloads.length }})
     </button>
   </div>
 
-  <div class="list" *ngIf="tab === 'active'">
+  <div class="filters">
+    <input
+      type="text"
+      class="filter-search"
+      placeholder="Search videos..."
+      [(ngModel)]="searchQuery"
+    />
+    <select class="filter-select" [(ngModel)]="filterPlaylist">
+      <option value="">All Playlists</option>
+      <option *ngFor="let p of uniquePlaylists" [value]="p">{{ p }}</option>
+    </select>
+    <select class="filter-select" [(ngModel)]="filterChannel">
+      <option value="">All Channels</option>
+      <option *ngFor="let c of uniqueChannels" [value]="c">{{ c }}</option>
+    </select>
+  </div>
+
+  <div class="empty" *ngIf="isLoading">Loading videos...</div>
+  <div class="empty" *ngIf="!isLoading && errorMessage">
+    {{ errorMessage }}
+    <button type="button" class="retry-btn" (click)="loadVideos()">Retry</button>
+  </div>
+  <div class="empty" *ngIf="!isLoading && !errorMessage && tab === 'active' && activeDownloads.length === 0">
+    All videos are downloaded
+  </div>
+  <div class="empty" *ngIf="!isLoading && !errorMessage && tab === 'completed' && completedDownloads.length === 0">
+    No downloaded videos yet
+  </div>
+
+  <div class="list" *ngIf="!isLoading && !errorMessage && tab === 'active'">
     <article class="download-card" *ngFor="let item of activeDownloads">
       <div class="row-top">
-        <div>
+        <div class="card-info">
           <h3>{{ item.title }}</h3>
-          <p>{{ item.channel }}</p>
+          <p class="card-meta">{{ item.channel }} &middot; {{ item.playlist }}</p>
         </div>
-        <span [class]="statusClass(item.status)">{{ item.status }}</span>
+        <div class="card-actions">
+          <span class="card-duration">{{ item.duration }}</span>
+          <button
+            type="button"
+            class="dl-btn"
+            [disabled]="item.isDownloading"
+            (click)="quickDownload($event, item)"
+          >
+            {{ item.isDownloading ? '...' : '⬇' }}
+          </button>
+        </div>
       </div>
-
-      <div class="progress-wrap" *ngIf="item.status !== 'queued'">
+      <div class="progress-wrap" *ngIf="item.isDownloading">
         <div class="track">
-          <div class="fill" [style.width.%]="item.progress"></div>
+          <div class="fill" [style.width.%]="item.downloadProgress ?? 0"></div>
         </div>
         <div class="progress-meta">
-          <span>{{ item.size }} / {{ item.totalSize }}</span>
-          <span>{{ item.progress }}%</span>
+          <span>Downloading...</span>
+          <span>{{ item.downloadProgress ?? 0 }}%</span>
         </div>
       </div>
-
-      <p class="meta">Speed: {{ item.speed }} | ETA: {{ item.eta }}</p>
     </article>
   </div>
 
-  <div class="list" *ngIf="tab === 'completed'">
-    <article class="download-card" *ngFor="let item of completedDownloads">
+  <div class="list" *ngIf="!isLoading && !errorMessage && tab === 'completed'">
+    <article class="download-card completed" *ngFor="let item of completedDownloads">
       <div class="row-top">
-        <div>
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.channel }}</p>
+        <div class="card-info">
+          <h3>
+            <a [routerLink]="['/watch', item.id]">{{ item.title }}</a>
+          </h3>
+          <p class="card-meta">{{ item.channel }} &middot; {{ item.playlist }}</p>
         </div>
-        <span [class]="statusClass(item.status)">{{ item.status }}</span>
+        <div class="card-actions">
+          <span class="card-duration">{{ item.duration }}</span>
+          <span class="dl-done">✓</span>
+        </div>
       </div>
-      <p class="meta">{{ item.totalSize }} downloaded</p>
     </article>
   </div>
 </section>

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../../core/api.service';
-import { PlaylistDto } from '../../../core/api.models';
+import { PlaylistService } from '../../../core/services';
+import { PlaylistDto } from '../../../core/models';
 
 interface Playlist {
   id: number;
@@ -26,7 +26,7 @@ export class PlaylistsPageComponent {
   isLoading = false;
   errorMessage = '';
 
-  constructor(private readonly api: ApiService) {
+  constructor(private readonly playlistService: PlaylistService) {
     this.loadPlaylists();
   }
 
@@ -42,7 +42,7 @@ export class PlaylistsPageComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.api.getPlaylists().subscribe({
+    this.playlistService.getPlaylists().subscribe({
       next: (playlists) => {
         this.playlists = playlists.map((playlist) => this.mapPlaylist(playlist));
         this.isLoading = false;

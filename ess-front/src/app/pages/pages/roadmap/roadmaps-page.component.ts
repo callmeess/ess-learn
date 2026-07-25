@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ApiService } from '../../../core/api.service';
-import { RoadmapListItemDto } from '../../../core/api.models';
+import { RoadmapService } from '../../../core/services';
+import { RoadmapListItemDto } from '../../../core/models';
 
 @Component({
   selector: 'app-roadmaps-page',
@@ -40,14 +40,14 @@ export class RoadmapsPageComponent implements OnInit {
     color: '#3b82f6'
   };
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly roadmapService: RoadmapService) {}
 
   ngOnInit(): void {
     this.loadRoadmaps();
   }
 
   loadRoadmaps(): void {
-    this.api.getRoadmaps().subscribe({
+    this.roadmapService.getRoadmaps().subscribe({
       next: (data) => {
         this.roadmaps = data;
         this.loading = false;
@@ -115,7 +115,7 @@ export class RoadmapsPageComponent implements OnInit {
       return;
     }
 
-    this.api.createRoadmap({
+    this.roadmapService.createRoadmap({
       name: this.newRoadmap.name.trim(),
       description: this.newRoadmap.description.trim() || 'Custom learning path roadmap.',
       category: this.newRoadmap.category.trim() || 'Custom',

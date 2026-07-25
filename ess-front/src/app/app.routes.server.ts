@@ -6,6 +6,10 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
+    path: 'watch/:videoId',
+    renderMode: RenderMode.Client
+  },
+  {
     path: 'roadmaps/:id',
     renderMode: RenderMode.Client
   },

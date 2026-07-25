@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ApiService } from '../../../../core/api.service';
-import { CreateRoadmapNodeDto } from '../../../../core/api.models';
+import { RoadmapService } from '../../../../core/services';
+import { CreateRoadmapNodeDto } from '../../../../core/models';
 
 interface NodeItem {
   id: number;
@@ -47,7 +47,7 @@ export class RoadmapDetailUpdate implements OnChanges {
     return this.addForm.controls.title;
   }
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly roadmapService: RoadmapService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue && !changes['isOpen']?.previousValue) {
@@ -133,7 +133,7 @@ export class RoadmapDetailUpdate implements OnChanges {
       followingNodeId: followingId
     };
 
-    this.api.addRoadmapNode(this.roadmapId, dto).subscribe({
+    this.roadmapService.addRoadmapNode(this.roadmapId, dto).subscribe({
       next: () => {
         this.nodesUpdated.emit();
         this.resetForm();

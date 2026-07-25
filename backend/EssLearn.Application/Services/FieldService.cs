@@ -1,4 +1,5 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
 using EssLearn.Core.Interfaces;
@@ -25,7 +26,7 @@ public class FieldService : IFieldService
             .OrderBy(f => f.Name)
             .ToListAsync();
 
-        return fields.Select(MapField).ToList();
+        return fields.Select(f => f.ToDto()).ToList();
     }
 
     public async Task<FieldDto?> GetByIdAsync(int id)
@@ -34,7 +35,7 @@ public class FieldService : IFieldService
             .Include(f => f.Playlists).ThenInclude(p => p.Videos).ThenInclude(v => v.Progress)
             .FirstOrDefaultAsync(f => f.Id == id);
 
-        return field == null ? null : MapField(field);
+        return field?.ToDto();
     }
 
     public async Task<FieldDto> CreateAsync(CreateFieldDto dto)
@@ -50,7 +51,7 @@ public class FieldService : IFieldService
         await _unitOfWork.LearningFields.AddAsync(field);
         await _unitOfWork.SaveChangesAsync();
 
-        return MapField(field);
+        return field.ToDto();
     }
 
     public async Task<FieldDto?> UpdateAsync(int id, UpdateFieldDto dto)
@@ -79,18 +80,5 @@ public class FieldService : IFieldService
             await _unitOfWork.LearningFields.RemoveAsync(field);
             await _unitOfWork.SaveChangesAsync();
         }
-    }
-
-    private static FieldDto MapField(LearningField f)
-    {
-        var videos = f.Playlists.SelectMany(p => p.Videos).ToList();
-        return new FieldDto(
-            f.Id, f.Name, f.Description, f.Color, f.Icon, f.CreatedAt,
-            f.Playlists.Count,
-            videos.Count,
-            videos.Count(v => v.Progress?.Status == VideoStatus.Completed),
-            videos.Sum(v => v.DurationSeconds),
-            videos.Sum(v => v.Progress?.WatchedSeconds ?? 0)
-        );
     }
 }

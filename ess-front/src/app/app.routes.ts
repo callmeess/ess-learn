@@ -13,6 +13,7 @@ import { RoadmapsPageComponent } from './pages/pages/roadmap/roadmaps-page.compo
 import { SchedulePageComponent } from './pages/pages/schedule/schedule-page.component';
 import { VideoDetailPageComponent } from './pages/pages/video-detail/video-detail-page.component';
 import { VideosPageComponent } from './pages/pages/videos/videos-page.component';
+import { WatchPageComponent } from './pages/pages/watch/watch-page.component';
 
 export const routes: Routes = [
 	{
@@ -21,6 +22,7 @@ export const routes: Routes = [
 		children: [
 			{ path: '', component: VideosPageComponent, pathMatch: 'full' },
 			{ path: 'videos/:id', component: VideoDetailPageComponent },
+			{ path: 'watch/:videoId', component: WatchPageComponent },
 			{ path: 'roadmaps', component: RoadmapsPageComponent },
 			{ path: 'roadmaps/:id', component: RoadmapDetailPageComponent },
 			{ path: 'schedule', component: SchedulePageComponent },

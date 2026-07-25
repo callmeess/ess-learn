@@ -31,11 +31,12 @@
 
   <div class="video-grid" *ngIf="!isLoading && !errorMessage && filteredVideos.length > 0">
     <article class="vid-card" *ngFor="let video of filteredVideos">
-      <a [routerLink]="['/videos', video.id]" class="vid-thumb" [style.background]="video.thumbnailUrl ? 'none' : 'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'">
+      <a [routerLink]="['/watch', video.id]" class="vid-thumb" [style.background]="video.thumbnailUrl ? 'none' : 'linear-gradient(135deg, ' + video.thumbGrad.join(', ') + ')'">
         <img *ngIf="video.thumbnailUrl" [src]="video.thumbnailUrl" [alt]="video.title" class="thumb-img" />
         <div *ngIf="!video.thumbnailUrl" class="thumb-emoji">{{ video.thumbEmoji }}</div>
         <span class="vid-duration">{{ video.duration }}</span>
         <span class="vid-dl-badge" *ngIf="video.downloaded">⬇</span>
+        <span class="vid-trans-badge" *ngIf="video.transcoded" title="Transcoded for streaming">⚡</span>
 
         <div class="vid-play-overlay">
           <div class="vid-play-btn">▶</div>
@@ -45,7 +46,7 @@
       <div class="vid-body">
         <div class="vid-body-row">
           <div class="vid-body-info">
-            <a [routerLink]="['/videos', video.id]" class="vid-title">{{ video.title }}</a>
+            <a [routerLink]="['/watch', video.id]" class="vid-title">{{ video.title }}</a>
             <p class="vid-channel">{{ video.channel }}</p>
 
             <div class="vid-meta">
@@ -77,7 +78,38 @@
             >
               {{ video.isDownloading ? '...' : (video.downloaded ? '✓' : '⬇') }}
             </button>
-            <span class="vid-menu-btn">⋯</span>
+            <div class="vid-menu-wrap">
+              <button
+                type="button"
+                class="vid-menu-btn"
+                [class.open]="openMenuId === video.id"
+                (click)="toggleMenu($event, video)"
+              >⋯</button>
+              <div class="vid-dropdown" *ngIf="openMenuId === video.id" (click)="$event.stopPropagation()">
+                <button type="button" class="vid-dropdown-item" (click)="viewDetails($event, video)">
+                  <span class="dropdown-icon">👁</span> View Details
+                </button>
+                <button
+                  type="button"
+                  class="vid-dropdown-item"
+                  [disabled]="!video.downloaded || video.isTranscoding"
+                  [class.disabled]="!video.downloaded"
+                  (click)="deleteDownload($event, video)"
+                >
+                  <span class="dropdown-icon">🗑</span> Delete Download
+                </button>
+                <button
+                  type="button"
+                  class="vid-dropdown-item"
+                  [disabled]="!video.downloaded || video.isTranscoding || video.transcoded"
+                  [class.disabled]="!video.downloaded || video.transcoded"
+                  (click)="forceTranscode($event, video)"
+                >
+                  <span class="dropdown-icon">⚡</span>
+                  {{ video.isTranscoding ? 'Transcoding...' : (video.transcoded ? 'Transcoded' : 'Force Transcode') }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

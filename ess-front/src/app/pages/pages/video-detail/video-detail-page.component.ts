@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
-import { ApiService } from '../../../core/api.service';
-import { DownloadProgressDto, DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../../core/api.models';
+import { VideoService, DownloadService, StreamingService } from '../../../core/services';
+import { DownloadProgressDto, DownloadStatusDto, VideoFormatDto, VideoStatus } from '../../../core/models';
 
 interface VideoFormat {
   id: string;
@@ -46,7 +46,6 @@ interface VideoDetail {
 export class VideoDetailPageComponent implements OnInit, OnDestroy {
   readonly videoId: number;
   selectedFormat = '';
-  isPlaying = false;
   isDownloading = false;
   isLoading = false;
   formatsLoading = false;
@@ -57,11 +56,16 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   toastVisible = false;
   private toastTimer?: number;
   private readonly subs = new Subscription();
-  private downloadStatus: DownloadStatusDto = { isDownloaded: false, download: null };
+  public downloadStatus: DownloadStatusDto = { isDownloaded: false, download: null };
 
   downloadProgress = 0;
   downloadStatusText = '';
   private progressPollSub?: Subscription;
+
+  isTranscoded = false;
+  isTranscoding = false;
+  transcodeProgress = 0;
+  private transcodePollSub?: Subscription;
 
   formats: VideoFormat[] = [];
 
@@ -69,7 +73,10 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   constructor(
     route: ActivatedRoute,
-    private readonly api: ApiService
+    private readonly router: Router,
+    private readonly videoService: VideoService,
+    private readonly downloadService: DownloadService,
+    private readonly streamingService: StreamingService
   ) {
     const idValue = Number.parseInt(route.snapshot.params['id'] ?? '0', 10);
     this.videoId = Number.isNaN(idValue) ? 0 : idValue;
@@ -82,6 +89,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subs.unsubscribe();
     this.progressPollSub?.unsubscribe();
+    this.transcodePollSub?.unsubscribe();
     if (this.toastTimer) {
       window.clearTimeout(this.toastTimer);
     }
@@ -90,6 +98,12 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   get selectedFormatSpec(): VideoFormat {
     const fallback = this.formats[0] ?? { id: '', label: 'No formats available', quality: 'N/A', format: 'N/A', fps: 'N/A', size: 'N/A' };
     return this.formats.find((format) => format.id === this.selectedFormat) ?? fallback;
+  }
+
+  get transcodeLabel(): string {
+    if (this.isTranscoded) return 'Transcoded';
+    if (this.isTranscoding) return `Transcoding ${this.transcodeProgress}%`;
+    return 'Not Transcoded';
   }
 
   setSelectedFormat(value: string): void {
@@ -104,26 +118,9 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   }
 
   togglePlay(): void {
-    this.isPlaying = !this.isPlaying;
-
-    if (!this.video || !this.isPlaying) {
-      return;
+    if (this.video) {
+      this.router.navigate(['/watch', this.video.id]);
     }
-
-    const nextWatched = Math.min(this.video.durationSeconds, this.video.watchedSeconds + 30);
-    this.subs.add(
-      this.api.updateVideoProgress(this.video.id, nextWatched, VideoStatus.InProgress).subscribe({
-        next: (progress) => {
-          if (!this.video) {
-            return;
-          }
-
-          this.video.watchedSeconds = progress.watchedSeconds;
-          this.video.status = this.downloadStatus.isDownloaded ? 'downloaded' : 'in-progress';
-          this.video.statusLabel = this.statusLabel(this.video.status, this.video.watchedSeconds, this.video.durationSeconds);
-        }
-      })
-    );
   }
 
   downloadVideo(): void {
@@ -141,7 +138,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.showToast(`Starting download: ${format.quality} ${format.format} (${format.size})`);
 
     this.subs.add(
-      this.api.downloadVideo(this.video.id, format.id, format.quality).subscribe({
+      this.downloadService.downloadVideo(this.video.id, format.id, format.quality).subscribe({
         next: () => {
           this.showToast('Download started. Processing in background...');
           this.startProgressPolling();
@@ -158,6 +155,24 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
         }
       })
     );
+  }
+
+  forceTranscode(): void {
+    if (!this.downloadStatus.isDownloaded || this.isTranscoding || this.isTranscoded) return;
+
+    this.isTranscoding = true;
+    this.transcodeProgress = 0;
+    this.showToast('Starting transcoding...');
+
+    this.streamingService.forceTranscode(this.videoId).subscribe({
+      next: () => {
+        this.pollTranscodeProgress();
+      },
+      error: (err) => {
+        this.isTranscoding = false;
+        this.showToast(err.error?.message || 'Failed to start transcoding');
+      }
+    });
   }
 
   showToast(message: string): void {
@@ -177,7 +192,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.progressPollSub?.unsubscribe();
 
     this.progressPollSub = interval(1500).pipe(
-      switchMap(() => this.api.getDownloadProgress(this.videoId)),
+      switchMap(() => this.downloadService.getProgress(this.videoId)),
       takeWhile((progress) => progress.hasActiveJob, true)
     ).subscribe({
       next: (progress) => {
@@ -215,6 +230,8 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
       this.downloadProgress = 0;
       this.downloadStatusText = '';
     }, 3000);
+
+    this.checkStreamingStatus();
   }
 
   private onDownloadFailed(errorMessage?: string): void {
@@ -252,7 +269,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.subs.add(
-      this.api.getVideo(this.videoId).subscribe({
+      this.videoService.getVideo(this.videoId).subscribe({
         next: (video) => {
           this.video = {
             id: video.id,
@@ -289,7 +306,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   private checkForActiveDownload(): void {
     this.subs.add(
-      this.api.getDownloadProgress(this.videoId).subscribe({
+      this.downloadService.getProgress(this.videoId).subscribe({
         next: (progress) => {
           if (progress.hasActiveJob) {
             this.isDownloading = true;
@@ -303,12 +320,52 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     );
   }
 
+  private checkStreamingStatus(): void {
+    this.subs.add(
+      this.streamingService.getStatus(this.videoId).subscribe({
+        next: (status) => {
+          this.isTranscoded = status.isTranscoded;
+          this.isTranscoding = status.isTranscoding;
+          this.transcodeProgress = status.progressPercent;
+
+          if (status.isTranscoding) {
+            this.pollTranscodeProgress();
+          }
+        },
+        error: () => {}
+      })
+    );
+  }
+
+  private pollTranscodeProgress(): void {
+    this.transcodePollSub?.unsubscribe();
+
+    this.transcodePollSub = interval(3000).pipe(
+      switchMap(() => this.streamingService.getStatus(this.videoId)),
+      takeWhile((s) => s.isTranscoding, true)
+    ).subscribe({
+      next: (status) => {
+        this.transcodeProgress = status.progressPercent;
+        if (status.isTranscoded) {
+          this.isTranscoded = true;
+          this.isTranscoding = false;
+          this.showToast('Transcoding complete!');
+        } else if (!status.isTranscoding) {
+          this.isTranscoding = false;
+        }
+      },
+      error: () => {
+        this.isTranscoding = false;
+      }
+    });
+  }
+
   private loadFormats(): void {
     this.formatsLoading = true;
     this.formatsError = '';
 
     this.subs.add(
-      this.api.getVideoFormats(this.videoId).subscribe({
+      this.downloadService.getFormats(this.videoId).subscribe({
         next: (formats) => {
           this.formats = formats.map((format) => this.mapFormat(format));
           this.selectedFormat = this.formats[0]?.id ?? '';
@@ -326,7 +383,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
   private loadDownloadStatus(): void {
     this.subs.add(
-      this.api.getDownloadStatus(this.videoId).subscribe({
+      this.downloadService.getStatus(this.videoId).subscribe({
         next: (status) => {
           this.downloadStatus = status;
 
@@ -337,6 +394,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
           if (status.isDownloaded) {
             this.video.status = 'downloaded';
             this.video.statusLabel = 'Downloaded';
+            this.checkStreamingStatus();
           }
         },
         error: () => {}

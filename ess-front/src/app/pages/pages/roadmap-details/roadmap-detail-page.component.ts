@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ApiService } from '../../../core/api.service';
-import { RoadmapDetailDto, RoadmapNodeDto } from '../../../core/api.models';
+import { RoadmapService } from '../../../core/services';
+import { RoadmapDetailDto, RoadmapNodeDto } from '../../../core/models';
 import { RoadmapDetailUpdate } from './roadmap-detail-update/roadmap-detail-update';
 
 interface NodeItem {
@@ -55,7 +55,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly api: ApiService,
+    private readonly roadmapService: RoadmapService,
     private readonly cdr: ChangeDetectorRef
   ) {}
 
@@ -77,7 +77,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
 
   loadRoadmap(): void {
     this.loading = true;
-    this.api.getRoadmap(this.roadmapId).subscribe({
+    this.roadmapService.getRoadmap(this.roadmapId).subscribe({
       next: (data) => {
         this.roadmapTitle = data.name;
         this.roadmapDescription = data.description ?? '';
@@ -212,7 +212,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   }
 
   startNode(id: number): void {
-    this.api.updateNodeStatus(this.roadmapId, id, { status: 'in-progress' }).subscribe({
+    this.roadmapService.updateNodeStatus(this.roadmapId, id, { status: 'in-progress' }).subscribe({
       next: () => {
         this.loadRoadmap();
         this.selectedNode = null;
@@ -221,7 +221,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   }
 
   completeNode(id: number): void {
-    this.api.updateNodeStatus(this.roadmapId, id, { status: 'completed' }).subscribe({
+    this.roadmapService.updateNodeStatus(this.roadmapId, id, { status: 'completed' }).subscribe({
       next: () => {
         this.loadRoadmap();
         this.selectedNode = null;
@@ -249,7 +249,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   saveNodeEdit(): void {
     if (!this.editingNode) return;
 
-    this.api.updateRoadmapNode(this.roadmapId, this.editingNode.id, {
+    this.roadmapService.updateRoadmapNode(this.roadmapId, this.editingNode.id, {
       title: this.editForm.title.trim(),
       description: this.editForm.description.trim(),
       duration: this.editForm.duration.trim(),
@@ -266,7 +266,7 @@ export class RoadmapDetailPageComponent implements OnInit, OnDestroy {
   deleteNode(id: number): void {
     if (!confirm('Delete this node?')) return;
 
-    this.api.deleteRoadmapNode(this.roadmapId, id).subscribe({
+    this.roadmapService.deleteRoadmapNode(this.roadmapId, id).subscribe({
       next: () => {
         this.closeNodeModal();
         this.loadRoadmap();

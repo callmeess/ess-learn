@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoadmapService, RoadmapService>();
 
         services.AddHostedService<DownloadJobProcessor>();
+        services.AddHostedService<TranscodeJobProcessor>();
 
         return services;
     }

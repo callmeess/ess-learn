@@ -159,15 +159,29 @@ public class DownloadJobProcessor : BackgroundService
 
             dbContext.StorageIntegrities.Add(integrity);
 
-            // Step 4: Mark job as completed
+            // Step 4: Save downloaded video first to get the real generated ID
+            await dbContext.SaveChangesAsync(ct);
+
+            // Step 5: Mark job as completed
             pendingJob.Status = DownloadJobStatus.Completed;
             pendingJob.ProgressPercent = 100;
             pendingJob.CompletedAt = DateTime.UtcNow;
             pendingJob.UpdatedAt = DateTime.UtcNow;
 
+            // Step 6: Create transcode job to convert to HLS
+            var transcodeJob = new TranscodeJob
+            {
+                VideoId = video.Id,
+                DownloadedVideoId = downloadedVideo.Id,
+                Status = TranscodeJobStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.TranscodeJobs.Add(transcodeJob);
+
             await dbContext.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Download job {JobId} completed. Stored at {BlobPath}", pendingJob.Id, uploadResult.BlobPath);
+            _logger.LogInformation("Download job {JobId} completed. Stored at {BlobPath}. Transcode job {TranscodeJobId} created.",
+                pendingJob.Id, uploadResult.BlobPath, transcodeJob.Id);
 
             // Clean up temp file
             CleanupTempFile(filePath);

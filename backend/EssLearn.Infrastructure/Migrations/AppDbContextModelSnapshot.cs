@@ -507,6 +507,104 @@ namespace EssLearn.Infrastructure.Migrations
                     b.ToTable("StorageIntegrities");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.TranscodeJob", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DownloadedVideoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<double>("ProgressPercent")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DownloadedVideoId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VideoId");
+
+                    b.ToTable("TranscodeJobs");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.TranscodedVideo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlobBucket")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DownloadedVideoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HlsManifestBlobPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("HlsSegmentsBlobPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("SegmentCount")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("TotalSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("TranscodedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("VideoId1")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DownloadedVideoId")
+                        .IsUnique();
+
+                    b.HasIndex("VideoId")
+                        .IsUnique();
+
+                    b.HasIndex("VideoId1");
+
+                    b.ToTable("TranscodedVideos");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
@@ -684,6 +782,48 @@ namespace EssLearn.Infrastructure.Migrations
                     b.Navigation("DownloadedVideo");
                 });
 
+            modelBuilder.Entity("EssLearn.Core.Entities.TranscodeJob", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.DownloadedVideo", "DownloadedVideo")
+                        .WithMany()
+                        .HasForeignKey("DownloadedVideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.Video", "Video")
+                        .WithMany()
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DownloadedVideo");
+
+                    b.Navigation("Video");
+                });
+
+            modelBuilder.Entity("EssLearn.Core.Entities.TranscodedVideo", b =>
+                {
+                    b.HasOne("EssLearn.Core.Entities.DownloadedVideo", "DownloadedVideo")
+                        .WithOne()
+                        .HasForeignKey("EssLearn.Core.Entities.TranscodedVideo", "DownloadedVideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.Video", "Video")
+                        .WithOne()
+                        .HasForeignKey("EssLearn.Core.Entities.TranscodedVideo", "VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EssLearn.Core.Entities.Video", null)
+                        .WithMany("TranscodedVideos")
+                        .HasForeignKey("VideoId1");
+
+                    b.Navigation("DownloadedVideo");
+
+                    b.Navigation("Video");
+                });
+
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.HasOne("EssLearn.Core.Entities.DownloadedVideo", "DownloadedVideo")
@@ -747,6 +887,8 @@ namespace EssLearn.Infrastructure.Migrations
             modelBuilder.Entity("EssLearn.Core.Entities.Video", b =>
                 {
                     b.Navigation("Progress");
+
+                    b.Navigation("TranscodedVideos");
                 });
 #pragma warning restore 612, 618
         }
