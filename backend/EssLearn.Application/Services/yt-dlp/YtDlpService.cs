@@ -22,8 +22,7 @@ public class YtDlpService : IYtDlpService
         _logger = logger;
 
         // Get paths from configuration
-        _binaryPath = config["yt-dlp:ExecutablePath"]
-            ?? throw new InvalidOperationException("yt-dlp:ExecutablePath is not configured");
+        _binaryPath = YtDlpPathResolver.Resolve(config);
 
         _downloadPath = config["yt-dlp:DownloadPath"]
             ?? Path.Combine(Directory.GetCurrentDirectory(), "downloads");
@@ -210,6 +209,10 @@ public class YtDlpService : IYtDlpService
         CancellationToken ct = default,
         IProgress<DownloadProgressDto>? progress = null)
     {
+        if (!File.Exists(_binaryPath))
+            throw new FileNotFoundException($"yt-dlp executable not found at '{_binaryPath}'. " +
+                "It should be downloaded automatically on startup by YtDlpUpdateWorker.");
+
         var psi = new ProcessStartInfo(_binaryPath)
         {
             RedirectStandardOutput = true,
