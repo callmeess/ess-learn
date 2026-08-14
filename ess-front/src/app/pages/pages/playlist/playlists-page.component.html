@@ -4,6 +4,10 @@
     <p>Organized video collections for structured learning</p>
   </div>
 
+  <div class="toolbar">
+    <button type="button" class="primary-button" (click)="openCreateDialog()">New Playlist</button>
+  </div>
+
   <div class="stats-grid">
     <article class="stat-card">
       <p class="value">{{ playlists.length }}</p>
@@ -51,7 +55,78 @@
           </div>
           <span>{{ playlist.progress }}%</span>
         </div>
+
+        <div class="card-actions">
+          <a class="ghost-button small-btn" [routerLink]="['/playlists', playlist.id]">Manage</a>
+          <button type="button" class="ghost-button small-btn" (click)="openEditDialog(dtoById(playlist.id))">Edit</button>
+          <ng-container *ngIf="deleteConfirmId !== playlist.id; else confirmDelete">
+            <button type="button" class="danger-button small-btn" (click)="toggleDeleteConfirm(playlist.id)">Delete</button>
+          </ng-container>
+          <ng-template #confirmDelete>
+            <span class="confirm-row">
+              <button type="button" class="danger-button small-btn" (click)="deletePlaylist(playlist.id)">Confirm</button>
+              <button type="button" class="ghost-button small-btn" (click)="toggleDeleteConfirm(playlist.id)">Cancel</button>
+            </span>
+          </ng-template>
+        </div>
       </div>
     </article>
   </div>
 </section>
+
+<!-- Create / Edit Playlist Dialog -->
+<div class="dialog-backdrop" *ngIf="showDialog" (click)="closeDialog()">
+  <div class="dialog" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>{{ editingPlaylist ? 'Edit Playlist' : 'New Playlist' }}</h2>
+      <button type="button" class="dialog-close" (click)="closeDialog()">&times;</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="form-group">
+        <label class="field-label">Title</label>
+        <input
+          type="text"
+          class="field-input"
+          [ngModel]="formTitle"
+          (ngModelChange)="formTitle = $event"
+          placeholder="Playlist title"
+          (keydown.enter)="savePlaylist()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Field</label>
+        <select class="field-input" [ngModel]="formFieldId" (ngModelChange)="formFieldId = $event">
+          <option [ngValue]="null" disabled>Select a field</option>
+          <option *ngFor="let field of fields" [ngValue]="field.id">{{ field.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Description</label>
+        <textarea
+          class="field-input"
+          rows="3"
+          [ngModel]="formDescription"
+          (ngModelChange)="formDescription = $event"
+          placeholder="Optional description"
+        ></textarea>
+      </div>
+
+      <p class="field-error" *ngIf="formError">{{ formError }}</p>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="ghost-button" (click)="closeDialog()">Cancel</button>
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!formTitle.trim() || formFieldId === null || isSaving"
+        (click)="savePlaylist()"
+      >
+        {{ isSaving ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </div>
+</div>

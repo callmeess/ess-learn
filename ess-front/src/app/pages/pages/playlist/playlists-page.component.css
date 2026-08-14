@@ -131,3 +131,161 @@
     min-height: 10rem;
   }
 }
+
+/* Toolbar & actions */
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem 0 0;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.confirm-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.primary-button,
+.ghost-button {
+  border-radius: 0.6rem;
+  border: 1px solid transparent;
+  padding: 0.65rem 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.primary-button {
+  background: var(--primary);
+  color: #fff;
+}
+
+.primary-button:hover {
+  background: var(--primary-strong);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ghost-button {
+  background: #f8fafc;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.danger-button {
+  border-radius: 0.6rem;
+  border: 1px solid transparent;
+  padding: 0.65rem 0.95rem;
+  cursor: pointer;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.danger-button:hover {
+  background: #fecaca;
+}
+
+.small-btn {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--surface);
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.dialog-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0 1.5rem 1.25rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
+.field-error {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #dc2626;
+}

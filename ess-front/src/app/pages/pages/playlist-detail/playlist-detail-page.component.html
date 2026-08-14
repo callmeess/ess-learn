@@ -1,0 +1,188 @@
+<section class="playlist-detail">
+  <div class="detail-header">
+    <a class="back-link" routerLink="/playlists">&larr; Back to playlists</a>
+
+    <div class="detail-hero" *ngIf="!isLoading && playlist">
+      <div class="detail-cover">
+        <img [src]="playlist.thumbnailUrl ?? fallbackThumb" [alt]="playlist.title" />
+      </div>
+
+      <div class="detail-info">
+        <h2>{{ playlist.title }}</h2>
+        <p class="muted" *ngIf="playlist.channelTitle">{{ playlist.channelTitle }}</p>
+        <p class="muted" *ngIf="fieldName">Field: {{ fieldName }}</p>
+        <p class="description" *ngIf="playlist.description">{{ playlist.description }}</p>
+
+        <div class="meta-row">
+          <span>{{ videos.length }} videos</span>
+          <span>{{ formatDuration(playlist.totalDurationSeconds) }}</span>
+          <span>{{ playlist.completedVideos }}/{{ playlist.totalVideos }} completed</span>
+        </div>
+
+        <div class="detail-actions">
+          <button type="button" class="ghost-button small-btn" (click)="openEditDialog()">Edit</button>
+          <ng-container *ngIf="!showDeleteConfirm; else confirmDelete">
+            <button type="button" class="danger-button small-btn" (click)="showDeleteConfirm = true">Delete</button>
+          </ng-container>
+          <ng-template #confirmDelete>
+            <span class="confirm-row">
+              <button
+                type="button"
+                class="danger-button small-btn"
+                [disabled]="isDeleting"
+                (click)="deletePlaylist()"
+              >
+                {{ isDeleting ? '...' : 'Confirm' }}
+              </button>
+              <button type="button" class="ghost-button small-btn" (click)="showDeleteConfirm = false">Cancel</button>
+            </span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header" *ngIf="isLoading">
+    <p>Loading playlist...</p>
+  </div>
+
+  <div class="section-header" *ngIf="!isLoading && errorMessage">
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading && playlist">
+    <div class="add-panel">
+      <h3>Add videos to this playlist</h3>
+
+      <div class="add-search">
+        <input
+          type="text"
+          class="field-input"
+          [ngModel]="addSearch"
+          (ngModelChange)="addSearch = $event"
+          placeholder="Search the video library..."
+        />
+      </div>
+
+      <div class="candidate-list" *ngIf="candidateVideos.length > 0; else noCandidates">
+        <label class="candidate-item" *ngFor="let video of candidateVideos">
+          <input type="checkbox" [checked]="selectedVideoIds.has(video.id)" (change)="toggleVideo(video.id)" />
+          <span class="candidate-thumb">
+            <img *ngIf="video.thumbnailUrl" [src]="video.thumbnailUrl" alt="" />
+            <span *ngIf="!video.thumbnailUrl" class="thumb-placeholder">🎬</span>
+          </span>
+          <span class="candidate-meta">
+            <span class="candidate-title">{{ video.title }}</span>
+            <span class="candidate-sub">{{ video.playlistTitle }}</span>
+          </span>
+        </label>
+      </div>
+      <ng-template #noCandidates>
+        <p class="muted">{{ addSearch ? 'No matching videos.' : 'No videos available to add.' }}</p>
+      </ng-template>
+
+      <div class="add-actions">
+        <button
+          type="button"
+          class="primary-button small-btn"
+          [disabled]="selectedVideoIds.size === 0 || isAdding"
+          (click)="addSelected()"
+        >
+          {{ isAdding ? 'Adding...' : 'Add selected (' + selectedVideoIds.size + ')' }}
+        </button>
+      </div>
+      <p class="field-error" *ngIf="addError">{{ addError }}</p>
+    </div>
+
+    <div class="video-section">
+      <h3>Videos in this playlist</h3>
+
+      <div class="video-list" *ngIf="videos.length > 0; else noVideos">
+        <div class="video-row" *ngFor="let video of videos">
+          <div class="video-thumb">
+            <img *ngIf="video.thumbnailUrl" [src]="video.thumbnailUrl" alt="" />
+            <span *ngIf="!video.thumbnailUrl" class="thumb-placeholder">🎬</span>
+          </div>
+
+          <div class="video-main">
+            <p class="video-title">{{ video.title }}</p>
+            <div class="video-meta">
+              <span>{{ formatDuration(video.durationSeconds) }}</span>
+              <span>{{ statusLabel(video) }}</span>
+              <span *ngIf="videoProgress(video) > 0">{{ videoProgress(video) }}% watched</span>
+            </div>
+            <div class="progress-row" *ngIf="videoProgress(video) > 0">
+              <div class="track">
+                <div class="fill" [style.width.%]="videoProgress(video)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-action">
+            <button type="button" class="danger-button small-btn" (click)="removeVideo(video.id)">Remove</button>
+          </div>
+        </div>
+      </div>
+      <ng-template #noVideos>
+        <p class="muted">This playlist has no videos yet. Add some from the library above.</p>
+      </ng-template>
+    </div>
+  </ng-container>
+</section>
+
+<!-- Edit Playlist Dialog -->
+<div class="dialog-backdrop" *ngIf="showDialog" (click)="closeDialog()">
+  <div class="dialog" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>Edit Playlist</h2>
+      <button type="button" class="dialog-close" (click)="closeDialog()">&times;</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="form-group">
+        <label class="field-label">Title</label>
+        <input
+          type="text"
+          class="field-input"
+          [ngModel]="formTitle"
+          (ngModelChange)="formTitle = $event"
+          placeholder="Playlist title"
+          (keydown.enter)="savePlaylist()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Field</label>
+        <select class="field-input" [ngModel]="formFieldId" (ngModelChange)="formFieldId = $event">
+          <option [ngValue]="null" disabled>Select a field</option>
+          <option *ngFor="let field of fields" [ngValue]="field.id">{{ field.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Description</label>
+        <textarea
+          class="field-input"
+          rows="3"
+          [ngModel]="formDescription"
+          (ngModelChange)="formDescription = $event"
+          placeholder="Optional description"
+        ></textarea>
+      </div>
+
+      <p class="field-error" *ngIf="formError">{{ formError }}</p>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="ghost-button" (click)="closeDialog()">Cancel</button>
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!formTitle.trim() || formFieldId === null || isSaving"
+        (click)="savePlaylist()"
+      >
+        {{ isSaving ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </div>
+</div>

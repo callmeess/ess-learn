@@ -6,6 +6,7 @@ import { ChannelsPageComponent } from './pages/pages/channels/channels-page.comp
 import { DownloadsPageComponent } from './pages/pages/downloads/downloads-page.component';
 import { NotFoundPageComponent } from './pages/pages/not-found/not-found-page.component';
 import { PlaylistsPageComponent } from './pages/pages/playlist/playlists-page.component';
+import { PlaylistDetailPageComponent } from './pages/pages/playlist-detail/playlist-detail-page.component';
 import { ReadingDetailPageComponent } from './pages/pages/reading-detail/reading-detail-page.component';
 import { ReadingPageComponent } from './pages/pages/reading/reading-page.component';
 import { RoadmapDetailPageComponent } from './pages/pages/roadmap-details/roadmap-detail-page.component';
@@ -29,6 +30,7 @@ export const routes: Routes = [
 			{ path: 'analytics', component: AnalyticsPageComponent },
 			{ path: 'channels', component: ChannelsPageComponent },
 			{ path: 'playlists', component: PlaylistsPageComponent },
+			{ path: 'playlists/:id', component: PlaylistDetailPageComponent },
 			{ path: 'downloads', component: DownloadsPageComponent },
 			{ path: 'reading', component: ReadingPageComponent },
 			{ path: 'reading/:id', component: ReadingDetailPageComponent },

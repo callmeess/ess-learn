@@ -1,7 +1,13 @@
 export type { FieldDto, CreateFieldDto, UpdateFieldDto, FieldSummaryDto } from './field.models';
 export { VideoStatus } from './video.models';
 export type { VideoListItemDto, VideoDto, RecentVideoDto, ProgressDto, PaginatedVideosDto } from './video.models';
-export type { PlaylistDetailDto, PlaylistDto } from './playlist.models';
+export type {
+  PlaylistDetailDto,
+  PlaylistDto,
+  CreatePlaylistDto,
+  UpdatePlaylistDto,
+  AddVideosToPlaylistDto
+} from './playlist.models';
 export type { VideoFormatDto, DownloadedVideoDto, DownloadStatusDto, DownloadProgressDto } from './download.models';
 export type {
   RoadmapListItemDto,

@@ -45,6 +45,145 @@ public class PlaylistService : IPlaylistService
         return playlist?.ToDetailDto();
     }
 
+    public async Task<PlaylistDto> CreateAsync(CreatePlaylistDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            throw new InvalidOperationException("Playlist title is required.");
+
+        var field = await _unitOfWork.LearningFields.GetByIdAsync(dto.FieldId);
+        if (field is null)
+            throw new InvalidOperationException("Learning field not found.");
+
+        var playlist = new Playlist
+        {
+            FieldId = dto.FieldId,
+            Title = dto.Title.Trim(),
+            Description = dto.Description,
+            ThumbnailUrl = dto.ThumbnailUrl,
+            SourceUrl = dto.SourceUrl,
+            TotalVideos = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Playlists.AddAsync(playlist);
+        await _unitOfWork.SaveChangesAsync();
+
+        return playlist.ToDto();
+    }
+
+    public async Task<PlaylistDto?> UpdateAsync(int id, UpdatePlaylistDto dto)
+    {
+        var playlist = await _unitOfWork.Playlists.GetByIdAsync(id);
+        if (playlist is null) return null;
+
+        if (dto.FieldId.HasValue && dto.FieldId.Value != playlist.FieldId)
+        {
+            var field = await _unitOfWork.LearningFields.GetByIdAsync(dto.FieldId.Value);
+            if (field is null)
+                throw new InvalidOperationException("Learning field not found.");
+            playlist.FieldId = dto.FieldId.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Title))
+            playlist.Title = dto.Title.Trim();
+
+        playlist.Description = dto.Description;
+        playlist.ThumbnailUrl = dto.ThumbnailUrl;
+        playlist.SourceUrl = dto.SourceUrl;
+        playlist.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Playlists.UpdateAsync(playlist);
+        await _unitOfWork.SaveChangesAsync();
+
+        var updated = await _dbContext.Playlists
+            .Include(p => p.Videos).ThenInclude(v => v.Progress)
+            .Include(p => p.Channel)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        return updated?.ToDto();
+    }
+
+    public async Task AddVideosAsync(int playlistId, AddVideosToPlaylistDto dto)
+    {
+        var playlist = await _unitOfWork.Playlists.GetByIdAsync(playlistId);
+        if (playlist is null)
+            throw new InvalidOperationException("Playlist not found.");
+
+        if (dto.VideoIds.Count == 0)
+            return;
+
+        var videos = new List<Video>();
+        foreach (var videoId in dto.VideoIds)
+        {
+            var video = await _unitOfWork.Videos.GetByIdAsync(videoId);
+            if (video is null)
+                throw new InvalidOperationException($"Video {videoId} not found.");
+            videos.Add(video);
+        }
+
+        var maxPosition = await _dbContext.Videos
+            .Where(v => v.PlaylistId == playlistId)
+            .MaxAsync(v => (int?)v.Position) ?? 0;
+
+        foreach (var video in videos)
+        {
+            if (video.PlaylistId == playlistId)
+                continue;
+
+            maxPosition++;
+            video.PlaylistId = playlistId;
+            video.Position = maxPosition;
+            video.UpdatedAt = DateTime.UtcNow;
+            await _unitOfWork.Videos.UpdateAsync(video);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<bool> RemoveVideoAsync(int playlistId, int videoId)
+    {
+        var playlist = await _unitOfWork.Playlists.GetByIdAsync(playlistId);
+        if (playlist is null) return false;
+
+        var video = await _unitOfWork.Videos.GetByIdAsync(videoId);
+        if (video is null || video.PlaylistId != playlistId)
+            return false;
+
+        if (string.Equals(playlist.Title, "Unsorted", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var unsorted = await _dbContext.Playlists
+            .FirstOrDefaultAsync(p => p.FieldId == playlist.FieldId && p.Title == "Unsorted");
+
+        if (unsorted is null)
+        {
+            unsorted = new Playlist
+            {
+                FieldId = playlist.FieldId,
+                Title = "Unsorted",
+                TotalVideos = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            await _unitOfWork.Playlists.AddAsync(unsorted);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        var maxPosition = await _dbContext.Videos
+            .Where(v => v.PlaylistId == unsorted.Id)
+            .MaxAsync(v => (int?)v.Position) ?? 0;
+
+        video.PlaylistId = unsorted.Id;
+        video.Position = maxPosition + 1;
+        video.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Videos.UpdateAsync(video);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
+    }
+
     public async Task DeleteAsync(int id)
     {
         var playlist = await _unitOfWork.Playlists.GetByIdAsync(id);
