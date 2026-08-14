@@ -78,7 +78,7 @@ public class AppDbContext : DbContext
             e.Property(dv => dv.Sha256Hash).HasMaxLength(64);
             e.HasIndex(dv => dv.PublicVideoId).IsUnique();
             e.HasIndex(dv => dv.BlobPath).IsUnique(false);
-            e.HasOne(dv => dv.Video).WithOne().HasForeignKey<DownloadedVideo>(dv => dv.PublicVideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(dv => dv.Video).WithOne(v => v.DownloadedVideo).HasForeignKey<DownloadedVideo>(dv => dv.PublicVideoId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(dv => dv.StorageIntegrity).WithOne(si => si.DownloadedVideo).HasForeignKey<StorageIntegrity>(si => si.DownloadedVideoId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -157,7 +157,7 @@ public class AppDbContext : DbContext
             e.Property(tv => tv.BlobBucket).HasMaxLength(100).IsRequired();
             e.HasIndex(tv => tv.VideoId).IsUnique();
             e.HasIndex(tv => tv.DownloadedVideoId).IsUnique();
-            e.HasOne(tv => tv.Video).WithOne().HasForeignKey<TranscodedVideo>(tv => tv.VideoId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(tv => tv.Video).WithMany(v => v.TranscodedVideos).HasForeignKey(tv => tv.VideoId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(tv => tv.DownloadedVideo).WithOne().HasForeignKey<TranscodedVideo>(tv => tv.DownloadedVideoId).OnDelete(DeleteBehavior.Cascade);
         });
 

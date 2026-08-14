@@ -1,6 +1,8 @@
+using System.Net;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading.Tasks;
 using EssLearn.Application.Dtos.BlobStorage;
 using EssLearn.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -9,22 +11,21 @@ using Minio.DataModel.Args;
 
 namespace EssLearn.Application.Services.BlobStorage;
 
-/// <summary>
-/// Implementation of blob storage using MinIO.
-/// Provides file upload, download, integrity verification, and lifecycle management.
-/// </summary>
+
 public class BlobStorageService : IBlobStorageService
 {
     private readonly IMinioClient _minioClient;
     private readonly BlobStorageOptions _options;
     private readonly ILogger<BlobStorageService> _logger;
+    private readonly HttpClient _httpClient;
 
     public BlobStorageService( IMinioClient minioClient, BlobStorageOptions options,
-        ILogger<BlobStorageService> logger)
+        ILogger<BlobStorageService> logger, HttpClient httpClient)
     {
         _minioClient = minioClient;
         _options = options;
         _logger = logger;
+        _httpClient = httpClient;
     }
 
     /// <summary>
@@ -127,17 +128,7 @@ public class BlobStorageService : IBlobStorageService
             }
 
             // Calculate SHA256
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_options.Timeouts.VerificationTimeoutSeconds));
-            using var stream = new MemoryStream();
-
-            var getObjectArgs = new GetObjectArgs()
-                .WithBucket(bucket)
-                .WithObject(objectPath)
-                .WithCallbackStream(async (s) => await s.CopyToAsync(stream, cts.Token));
-
-            await _minioClient.GetObjectAsync(getObjectArgs, cts.Token);
-
-            stream.Seek(0, SeekOrigin.Begin);
+            using var stream = await DownloadFileAsync(bucket, objectPath);
             var calculatedHash = await ComputeSha256Async(stream);
 
             // Check hash
@@ -174,41 +165,71 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Downloads a blob from MinIO.
-    /// </summary>
     public async Task<Stream> DownloadFileAsync(string bucket, string objectPath)
     {
-        try
+        const int maxAttempts = 3;
+        Exception? lastError = null;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            _logger.LogInformation("Starting download from {Bucket}/{ObjectPath}", bucket, objectPath);
+            try
+            {
+                _logger.LogInformation("Downloading {Bucket}/{ObjectPath} (attempt {Attempt}/{MaxAttempts})",
+                    bucket, objectPath, attempt, maxAttempts);
 
-            var stream = new MemoryStream();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_options.Timeouts.DownloadTimeoutSeconds));
+                // Build a signed URL with the SDK (pure computation, no network call),
+                // then stream the body directly with our own HttpClient. This avoids the
+                // SDK's GetObjectAsync callback path, whose response stream is disposed
+                // asynchronously and causes intermittent truncated downloads.
+                var presignedUrl = await _minioClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucket)
+                        .WithObject(objectPath)
+                        .WithExpiry(60));
 
-            var getObjectArgs = new GetObjectArgs()
-                .WithBucket(bucket)
-                .WithObject(objectPath)
-                .WithCallbackStream(async (s) => await s.CopyToAsync(stream, cts.Token));
+                var attemptTimeout = TimeSpan.FromSeconds(Math.Min(_options.Timeouts.DownloadTimeoutSeconds, 60));
+                using var cts = new CancellationTokenSource(attemptTimeout);
 
-            await _minioClient.GetObjectAsync(getObjectArgs, cts.Token);
+                using var response = await _httpClient.GetAsync(presignedUrl,
+                    HttpCompletionOption.ResponseHeadersRead, cts.Token);
 
-            stream.Seek(0, SeekOrigin.Begin);
-            _logger.LogInformation("Successfully downloaded {Bytes} bytes from {Bucket}/{ObjectPath}",
-                stream.Length, bucket, objectPath);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    throw new HttpRequestException(
+                        $"Object not found: {bucket}/{objectPath}", null, HttpStatusCode.NotFound);
 
-            return stream;
+                response.EnsureSuccessStatusCode();
+
+                var stream = new MemoryStream();
+                await using var body = await response.Content.ReadAsStreamAsync(cts.Token);
+                await body.CopyToAsync(stream, cts.Token);
+                stream.Seek(0, SeekOrigin.Begin);
+
+                _logger.LogInformation("Successfully downloaded {Bytes} bytes from {Bucket}/{ObjectPath} (attempt {Attempt})",
+                    stream.Length, bucket, objectPath, attempt);
+
+                return stream;
+            }
+            catch (Exception ex) when (
+                attempt < maxAttempts &&
+                ex is not HttpRequestException { StatusCode: HttpStatusCode.NotFound })
+            {
+                lastError = ex;
+                _logger.LogWarning(ex,
+                    "Download attempt {Attempt}/{MaxAttempts} failed for {Bucket}/{ObjectPath}; retrying in {Delay}ms",
+                    attempt, maxAttempts, bucket, objectPath, attempt * 250);
+                await Task.Delay(TimeSpan.FromMilliseconds(attempt * 250));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Download failed for {Bucket}/{ObjectPath}", bucket, objectPath);
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Download failed for {Bucket}/{ObjectPath}", bucket, objectPath);
-            throw;
-        }
+
+        throw new InvalidOperationException("Download failed after exhausting retries.", lastError);
     }
 
-    /// <summary>
-    /// Gets metadata about a blob without downloading content.
-    /// </summary>
+    
     public async Task<BlobStorageMetadata> GetMetadataAsync(string bucket, string objectPath)
     {
         try
@@ -235,9 +256,7 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Copies a blob from source to destination.
-    /// </summary>
+    
     public async Task<BlobStorageResult> CopyBlobAsync(
         string sourceBucket,
         string sourceObjectPath,
@@ -280,9 +299,6 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Deletes a blob from storage.
-    /// </summary>
     public async Task<BlobStorageResult> DeleteBlobAsync(string bucket, string objectPath)
     {
         try
@@ -332,9 +348,6 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Lists all blobs in a bucket with optional prefix.
-    /// </summary>
     public async Task<List<BlobMetadata>> ListBlobsAsync(string bucket, string prefix = "")
     {
         try
@@ -347,17 +360,16 @@ public class BlobStorageService : IBlobStorageService
 
             var observable = _minioClient.ListObjectsAsync(listArgs);
 
-            observable.Select(AbandonedMutexException => new BlobMetadata
+            observable.Select(item => new BlobMetadata
             {
-                ObjectPath = AbandonedMutexException.Key,
-                Size = AbandonedMutexException.Size,
-                LastModified = AbandonedMutexException.LastModifiedDateTime ?? DateTime.UtcNow,
-                ETag = AbandonedMutexException.ETag,
-                IsDirectory = AbandonedMutexException.IsDir
-            }).Subscribe(blob =>
-            {
-                blobs.Add(blob);
-            }, ex =>
+                ObjectPath = item.Key,
+                Size = item.Size,
+                LastModified = item.LastModifiedDateTime ?? DateTime.UtcNow,
+                ETag = item.ETag,
+                IsDirectory = item.IsDir
+
+            }).Subscribe( blob =>  { blobs.Add(blob);},
+            ex =>
             {
                 _logger.LogError(ex, "Error listing blobs from {Bucket} with prefix {Prefix}", bucket, prefix);
             });
@@ -373,9 +385,7 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Checks if a blob exists in storage.
-    /// </summary>
+    
     public async Task<bool> BlobExistsAsync(string bucket, string objectPath)
     {
         try
@@ -394,9 +404,7 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Ensures a bucket exists, creates it if not.
-    /// </summary>
+    
     private async Task EnsureBucketExistsAsync(string bucket)
     {
         try
@@ -408,6 +416,7 @@ public class BlobStorageService : IBlobStorageService
             if (!exists)
             {
                 _logger.LogInformation("Creating bucket {Bucket}", bucket);
+
                 var makeBucketArgs = new MakeBucketArgs()
                     .WithBucket(bucket);
 
@@ -421,9 +430,8 @@ public class BlobStorageService : IBlobStorageService
         }
     }
 
-    /// <summary>
-    /// Computes SHA256 hash of a stream.
-    /// </summary>
+    
+
     private static async Task<string> ComputeSha256Async(Stream stream)
     {
         using var sha256 = SHA256.Create();

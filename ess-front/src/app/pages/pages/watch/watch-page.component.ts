@@ -36,13 +36,22 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   isTranscoding = false;
   transcodeProgress = 0;
   videoLoading = true;
+  isBuffering = false;
   errorMessage = '';
 
   private hls: Hls | null = null;
   private subs = new Subscription();
   private progressSub?: Subscription;
+  private advanceSub?: Subscription;
+  private downloadPollSub?: Subscription;
+  private transcodePollSub?: Subscription;
+  private bufferingSub = new Subscription();
   private observer?: IntersectionObserver;
   private seekToTime = 0;
+  private stallRetries = 0;
+  private stallTimer?: ReturnType<typeof setTimeout>;
+  private readonly maxStallRetries = 3;
+  private readonly stallTimeoutMs = 10000;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -66,13 +75,17 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroyPlayer();
     this.progressSub?.unsubscribe();
+    this.stopPolls();
+    this.bufferingSub.unsubscribe();
     this.subs.unsubscribe();
     this.observer?.disconnect();
   }
 
   loadVideo(videoId: number): void {
     this.currentVideoId = videoId;
+    this.stopPolls();
     this.videoLoading = true;
+    this.isBuffering = false;
     this.errorMessage = '';
     this.isDownloaded = false;
     this.isDownloading = false;
@@ -101,6 +114,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             createdAt: new Date().toISOString()
           };
           this.seekToTime = video.watchedSeconds;
+          this.isTranscoded = video.isTranscoded;
           this.videoLoading = false;
 
           if (!this.playlistId) {
@@ -152,9 +166,11 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   }
 
   private checkDownloadStatus(): void {
+    const videoId = this.currentVideoId;
     this.subs.add(
-      this.downloadService.getStatus(this.currentVideoId).subscribe({
+      this.downloadService.getStatus(videoId).subscribe({
         next: (status) => {
+          if (videoId !== this.currentVideoId) return;
           this.isDownloaded = status.isDownloaded;
           if (this.currentVideo) {
             this.currentVideo.isDownloaded = status.isDownloaded;
@@ -165,6 +181,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           }
         },
         error: () => {
+          if (videoId !== this.currentVideoId) return;
           this.checkStreamingStatus();
         }
       })
@@ -172,20 +189,25 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   }
 
   private checkStreamingStatus(): void {
+    const videoId = this.currentVideoId;
     this.subs.add(
-      this.streamingService.getStatus(this.currentVideoId).subscribe({
+      this.streamingService.getStatus(videoId).subscribe({
         next: (status) => {
+          if (videoId !== this.currentVideoId) return;
           this.isTranscoded = status.isTranscoded;
           this.isTranscoding = status.isTranscoding;
           this.transcodeProgress = status.progressPercent;
 
           if (this.isTranscoded) {
             this.initPlayer();
-          } else if (this.isTranscoding) {
+          } else if (status.isTranscoding || this.isDownloaded) {
             this.pollTranscodingStatus();
           }
         },
-        error: () => {}
+        error: () => {
+          if (videoId !== this.currentVideoId) return;
+          this.errorMessage = 'Failed to check streaming status.';
+        }
       })
     );
   }
@@ -222,49 +244,77 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private pollDownloadProgress(): void {
-    this.subs.add(
-      interval(2000).pipe(
-        switchMap(() => this.downloadService.getProgress(this.currentVideoId))
-      ).subscribe({
-        next: (progress) => {
-          this.downloadProgress = Math.round(progress.progress);
+  forceTranscode(): void {
+    if (this.isDownloading || this.isTranscoding) return;
 
-          if (progress.status === 'Completed') {
-            this.isDownloading = false;
-            this.isDownloaded = true;
-            if (this.currentVideo) {
-              this.currentVideo.isDownloaded = true;
-            }
-            this.checkStreamingStatus();
-          } else if (progress.status === 'Failed') {
-            this.isDownloading = false;
-          }
+    this.isTranscoding = true;
+    this.transcodeProgress = 0;
+
+    this.subs.add(
+      this.streamingService.forceTranscode(this.currentVideoId).subscribe({
+        next: () => {
+          this.pollTranscodingStatus();
         },
         error: () => {
-          this.isDownloading = false;
+          this.isTranscoding = false;
+          this.errorMessage = 'Failed to start transcoding.';
         }
       })
     );
   }
 
-  private pollTranscodingStatus(): void {
-    this.subs.add(
-      interval(3000).pipe(
-        switchMap(() => this.streamingService.getStatus(this.currentVideoId))
-      ).subscribe({
-        next: (status) => {
-          this.transcodeProgress = status.progressPercent;
-          if (status.isTranscoded) {
-            this.isTranscoded = true;
-            this.isTranscoding = false;
-            this.initPlayer();
-          } else if (!status.isTranscoding) {
-            this.isTranscoding = false;
+  private pollDownloadProgress(): void {
+    this.stopPolls();
+    this.downloadPollSub = interval(2000).pipe(
+      switchMap(() => this.downloadService.getProgress(this.currentVideoId))
+    ).subscribe({
+      next: (progress) => {
+        this.downloadProgress = Math.round(progress.progress);
+
+        if (progress.status === 'Completed') {
+          this.isDownloading = false;
+          this.isDownloaded = true;
+          if (this.currentVideo) {
+            this.currentVideo.isDownloaded = true;
           }
+          this.stopPolls();
+          this.checkStreamingStatus();
+        } else if (progress.status === 'Failed') {
+          this.isDownloading = false;
+          this.stopPolls();
         }
-      })
-    );
+      },
+      error: () => {
+        this.isDownloading = false;
+        this.stopPolls();
+      }
+    });
+  }
+
+  private pollTranscodingStatus(): void {
+    this.stopPolls();
+    this.transcodePollSub = interval(3000).pipe(
+      switchMap(() => this.streamingService.getStatus(this.currentVideoId))
+    ).subscribe({
+      next: (status) => {
+        this.transcodeProgress = status.progressPercent;
+        this.isTranscoding = status.isTranscoding;
+
+        if (status.isTranscoded) {
+          this.isTranscoded = true;
+          this.isTranscoding = false;
+          this.stopPolls();
+          this.initPlayer();
+        } else if (!status.isTranscoding) {
+          this.isTranscoding = false;
+          this.stopPolls();
+        }
+      },
+      error: () => {
+        this.isTranscoding = false;
+        this.stopPolls();
+      }
+    });
   }
 
   private initPlayer(): void {
@@ -273,10 +323,28 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     const video = this.videoElement?.nativeElement;
     if (!video) return;
 
+    // The video is ready to play: make sure no preparing/loading overlay lingers.
+    this.videoLoading = false;
+    this.isTranscoded = true;
+    this.isBuffering = false;
+
     const url = `${API_BASE_URL}/api/streaming/${this.currentVideoId}/master.m3u8`;
 
+    this.setupPlayerEvents(video);
+
     if (Hls.isSupported()) {
-      this.hls = new Hls({ enableWorker: true });
+      this.hls = new Hls({
+        enableWorker: true,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        backBufferLength: 30,
+        maxBufferSize: 60 * 1000 * 1000,
+        startLevel: -1,
+        fragLoadingMaxRetry: 10,
+        fragLoadingRetryDelay: 500,
+        manifestLoadingMaxRetry: 2,
+        manifestLoadingRetryDelay: 1000
+      });
       this.hls.loadSource(url);
       this.hls.attachMedia(video);
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -285,10 +353,40 @@ export class WatchPageComponent implements OnInit, OnDestroy {
         }
         video.play().catch(() => {});
       });
+      this.hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        this.stallRetries = 0;
+        this.isBuffering = false;
+        this.clearStallTimer();
+      });
       this.hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          this.hls?.destroy();
-          this.hls = null;
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              this.hls?.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              this.hls?.recoverMediaError();
+              break;
+            default:
+              this.hls?.destroy();
+              this.hls = null;
+              this.errorMessage = 'Failed to play this video. Please try again.';
+              break;
+          }
+          return;
+        }
+
+        // Recover from persistent non-fatal stalls: if fragments repeatedly fail to
+        // load or the buffer stalls, nudge hls.js to reload the manifest and resume.
+        if (
+          data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR
+        ) {
+          this.stallRetries++;
+          if (this.stallRetries >= this.maxStallRetries) {
+            this.stallRetries = 0;
+            this.hls?.startLoad();
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -302,8 +400,90 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.setupAutoAdvance(video);
   }
 
+  private markPlaybackReady(): void {
+    this.videoLoading = false;
+    this.isBuffering = false;
+    this.clearStallTimer();
+  }
+
+  private setupPlayerEvents(video: HTMLVideoElement): void {
+    this.bufferingSub.unsubscribe();
+    this.bufferingSub = new Subscription();
+
+    this.bufferingSub.add(
+      fromEvent(video, 'waiting').subscribe(() => {
+        this.isBuffering = true;
+        this.armStallTimer();
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'playing').subscribe(() => {
+        this.markPlaybackReady();
+        this.isDownloading = false;
+        this.isTranscoding = false;
+        this.errorMessage = '';
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'loadeddata').subscribe(() => {
+        this.markPlaybackReady();
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'canplay').subscribe(() => {
+        this.markPlaybackReady();
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'canplaythrough').subscribe(() => {
+        this.markPlaybackReady();
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'seeked').subscribe(() => {
+        this.markPlaybackReady();
+      })
+    );
+
+    this.bufferingSub.add(
+      fromEvent(video, 'timeupdate').subscribe(() => {
+        if (!video.paused && video.currentTime > 0) {
+          this.markPlaybackReady();
+        }
+      })
+    );
+  }
+
+  private armStallTimer(): void {
+    this.clearStallTimer();
+    this.stallTimer = setTimeout(() => {
+      this.stallTimer = undefined;
+      if (this.isBuffering) {
+        this.hls?.startLoad();
+      }
+    }, this.stallTimeoutMs);
+  }
+
+  private clearStallTimer(): void {
+    if (this.stallTimer) {
+      clearTimeout(this.stallTimer);
+      this.stallTimer = undefined;
+    }
+  }
+
   private destroyPlayer(): void {
     this.progressSub?.unsubscribe();
+    this.progressSub = undefined;
+    this.advanceSub?.unsubscribe();
+    this.advanceSub = undefined;
+    this.bufferingSub.unsubscribe();
+    this.clearStallTimer();
+    this.stallRetries = 0;
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
@@ -313,6 +493,13 @@ export class WatchPageComponent implements OnInit, OnDestroy {
       video.removeAttribute('src');
       video.load();
     }
+  }
+
+  private stopPolls(): void {
+    this.downloadPollSub?.unsubscribe();
+    this.downloadPollSub = undefined;
+    this.transcodePollSub?.unsubscribe();
+    this.transcodePollSub = undefined;
   }
 
   private setupProgressTracking(video: HTMLVideoElement): void {
@@ -344,12 +531,11 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   }
 
   private setupAutoAdvance(video: HTMLVideoElement): void {
-    this.subs.add(
-      fromEvent(video, 'ended').subscribe(() => {
-        this.markVideoCompleted();
-        this.playNextVideo();
-      })
-    );
+    this.advanceSub?.unsubscribe();
+    this.advanceSub = fromEvent(video, 'ended').subscribe(() => {
+      this.markVideoCompleted();
+      this.playNextVideo();
+    });
   }
 
   private markVideoCompleted(): void {
@@ -394,13 +580,15 @@ export class WatchPageComponent implements OnInit, OnDestroy {
   }
 
   selectVideo(video: VideoListItemDto): void {
+    this.stopPolls();
     this.currentVideoId = video.id;
     this.currentVideo = video;
     this.seekToTime = video.watchedSeconds;
     this.isDownloaded = video.isDownloaded;
     this.isDownloading = false;
-    this.isTranscoded = false;
+    this.isTranscoded = video.isTranscoded;
     this.isTranscoding = false;
+    this.isBuffering = false;
     this.destroyPlayer();
     this.checkDownloadStatus();
   }

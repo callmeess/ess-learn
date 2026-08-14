@@ -80,3 +80,5 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+backend/EssLearn.Api/downloads/*

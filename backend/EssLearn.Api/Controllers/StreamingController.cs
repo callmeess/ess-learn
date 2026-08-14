@@ -36,7 +36,8 @@ public class StreamingController(
         if (job == null)
             return Ok(new StreamingStatusDto(false, false, 0, null));
 
-        var isTranscoding = job.Status == TranscodeJobStatus.Transcoding ||
+        var isTranscoding = job.Status == TranscodeJobStatus.Pending ||
+                            job.Status == TranscodeJobStatus.Transcoding ||
                             job.Status == TranscodeJobStatus.Uploading;
 
         return Ok(new StreamingStatusDto(false, isTranscoding, job.ProgressPercent, null));
@@ -55,6 +56,9 @@ public class StreamingController(
         {
             var stream = await blobStorage.DownloadFileAsync(
                 transcoded.BlobBucket, transcoded.HlsManifestBlobPath);
+
+            Response.Headers.CacheControl = "public, max-age=60";
+            Response.Headers.ETag = $"\"{transcoded.HlsManifestBlobPath}\"";
 
             return File(stream, "application/vnd.apple.mpegurl");
         }
@@ -79,6 +83,9 @@ public class StreamingController(
         {
             var stream = await blobStorage.DownloadFileAsync(
                 transcoded.BlobBucket, segmentPath);
+
+            Response.Headers.CacheControl = "public, max-age=3600";
+            Response.Headers.ETag = $"\"{segmentName}\"";
 
             return File(stream, "video/mp2t");
         }

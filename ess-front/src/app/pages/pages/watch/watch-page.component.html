@@ -1,36 +1,41 @@
 <section class="watch-layout">
   <div class="watch-player-section">
     <div class="player-container">
-      <video
-        #videoElement
-        class="video-player"
-        controls
-        preload="metadata"
-        [attr.poster]="currentVideo?.thumbnailUrl"
-      ></video>
+      <video #videoElement class="video-player" controls preload="metadata"
+        [attr.poster]="currentVideo?.thumbnailUrl"></video>
 
       <div class="transcoding-overlay" *ngIf="!isTranscoded && !videoLoading && !errorMessage">
         <div class="transcoding-spinner"></div>
         <p *ngIf="isDownloading">Downloading video... {{ downloadProgress }}%</p>
         <p *ngIf="!isDownloading && isTranscoding">Processing video... {{ transcodeProgress | number:'1.0-0' }}%</p>
-        <p *ngIf="!isDownloading && !isTranscoding && !isDownloaded">This video needs to be downloaded before it can be streamed</p>
-        <p *ngIf="!isDownloading && !isTranscoding && isDownloaded">Waiting for transcoding to begin...</p>
+        <p *ngIf="!isDownloading && !isTranscoding && !isDownloaded">This video needs to be downloaded before it can be
+          streamed</p>
+        <p *ngIf="!isDownloading && !isTranscoding && isDownloaded">Video is downloaded. Transcode it to start
+          streaming.</p>
         <div class="transcoding-progress" *ngIf="isDownloading || isTranscoding">
-          <div class="transcoding-progress-fill" [style.width.%]="isDownloading ? downloadProgress : transcodeProgress"></div>
+          <div class="transcoding-progress-fill" [style.width.%]="isDownloading ? downloadProgress : transcodeProgress">
+          </div>
         </div>
-        <button
-          *ngIf="!isDownloading && !isTranscoding && !isDownloaded"
-          type="button"
-          class="download-btn"
-          (click)="downloadForStreaming()"
-        >
+        <button *ngIf="!isDownloading && !isTranscoding && !isDownloaded" type="button" class="download-btn"
+          (click)="downloadForStreaming()">
           Download to Watch
+        </button>
+        <button *ngIf="!isDownloading && !isTranscoding && isDownloaded" type="button" class="download-btn"
+          (click)="forceTranscode()">
+          Transcode to Watch
         </button>
       </div>
 
-      <div class="loading-overlay" *ngIf="videoLoading">
+      <!-- Loading overlay commented out: caused lag over the video -->
+      <!-- <div class="loading-overlay" *ngIf="videoLoading">
         <div class="loading-spinner"></div>
-      </div>
+      </div> -->
+
+      <!-- Buffering overlay commented out: dark screen over the video lagged playback -->
+      <!-- <div class="buffering-overlay" *ngIf="isBuffering && isTranscoded && !errorMessage">
+        <div class="buffering-spinner"></div>
+        <p>Buffering...</p>
+      </div> -->
     </div>
 
     <div class="video-info" *ngIf="currentVideo">
@@ -60,12 +65,8 @@
     </div>
 
     <div class="playlist-items" (scroll)="onVideoScroll($event)">
-      <div
-        *ngFor="let video of playlist; let i = index"
-        class="playlist-item"
-        [class.active]="video.id === currentVideoId"
-        (click)="selectVideo(video)"
-      >
+      <div *ngFor="let video of playlist; let i = index" class="playlist-item"
+        [class.active]="video.id === currentVideoId" (click)="selectVideo(video)">
         <div class="playlist-item-thumb">
           <img [src]="video.thumbnailUrl" [alt]="video.title" loading="lazy" />
           <span class="playlist-item-duration">{{ formatDuration(video.durationSeconds) }}</span>

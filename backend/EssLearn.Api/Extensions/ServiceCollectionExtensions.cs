@@ -14,6 +14,7 @@ using EssLearn.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Minio;
+using System.Net.Http;
 
 namespace EssLearn.Api.Extensions;
 
@@ -71,12 +72,31 @@ public static class ServiceCollectionExtensions
         config.GetSection("BlobStorage").Bind(blobStorageOptions);
         services.AddSingleton(blobStorageOptions);
 
+        // Dedicated, hardened HttpClient for blob downloads (presigned-URL path).
+        // A bounded PooledConnectionLifetime avoids stale-connection failures when
+        // MinIO closes idle connections while the shared pool would otherwise keep them.
+        services.AddSingleton(new HttpClient(new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(1),
+            PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+            MaxConnectionsPerServer = 128,
+            ConnectTimeout = TimeSpan.FromSeconds(10)
+        }));
+
         // Register MinIO client
         services.AddSingleton<IMinioClient>(sp =>
         {
             var minioClient = new MinioClient()
                 .WithEndpoint(blobStorageOptions.Endpoint)
-                .WithCredentials(blobStorageOptions.AccessKey, blobStorageOptions.SecretKey);
+                .WithCredentials(blobStorageOptions.AccessKey, blobStorageOptions.SecretKey)
+                .WithRegion(blobStorageOptions.Region)
+                .WithHttpClient(new HttpClient(new SocketsHttpHandler
+                {
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(1),
+                    PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+                    MaxConnectionsPerServer = 128,
+                    ConnectTimeout = TimeSpan.FromSeconds(10)
+                }));
 
             if (blobStorageOptions.UseSSL)
                 minioClient = minioClient.WithSSL();

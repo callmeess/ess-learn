@@ -14,8 +14,8 @@ public class YtDlpManager : IYtDlpManager
     {
         _logger = logger;
 
-        // Get binary path from config or use default location
-        _binaryPath = config["yt-dlp:ExecutablePath"]; 
+        // Get binary path from config or use a platform-appropriate default
+        _binaryPath = YtDlpPathResolver.Resolve(config);
 
         _logger.LogInformation("YtDlp binary path: {BinaryPath}", _binaryPath);
     }
