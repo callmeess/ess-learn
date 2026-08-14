@@ -10,7 +10,8 @@
         <p *ngIf="!isDownloading && isTranscoding">Processing video... {{ transcodeProgress | number:'1.0-0' }}%</p>
         <p *ngIf="!isDownloading && !isTranscoding && !isDownloaded">This video needs to be downloaded before it can be
           streamed</p>
-        <p *ngIf="!isDownloading && !isTranscoding && isDownloaded">Waiting for transcoding to begin...</p>
+        <p *ngIf="!isDownloading && !isTranscoding && isDownloaded">Video is downloaded. Transcode it to start
+          streaming.</p>
         <div class="transcoding-progress" *ngIf="isDownloading || isTranscoding">
           <div class="transcoding-progress-fill" [style.width.%]="isDownloading ? downloadProgress : transcodeProgress">
           </div>
@@ -19,11 +20,22 @@
           (click)="downloadForStreaming()">
           Download to Watch
         </button>
+        <button *ngIf="!isDownloading && !isTranscoding && isDownloaded" type="button" class="download-btn"
+          (click)="forceTranscode()">
+          Transcode to Watch
+        </button>
       </div>
 
-      <div class="loading-overlay" *ngIf="videoLoading">
+      <!-- Loading overlay commented out: caused lag over the video -->
+      <!-- <div class="loading-overlay" *ngIf="videoLoading">
         <div class="loading-spinner"></div>
-      </div>
+      </div> -->
+
+      <!-- Buffering overlay commented out: dark screen over the video lagged playback -->
+      <!-- <div class="buffering-overlay" *ngIf="isBuffering && isTranscoded && !errorMessage">
+        <div class="buffering-spinner"></div>
+        <p>Buffering...</p>
+      </div> -->
     </div>
 
     <div class="video-info" *ngIf="currentVideo">

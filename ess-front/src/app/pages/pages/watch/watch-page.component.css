@@ -28,7 +28,8 @@
 }
 
 .transcoding-overlay,
-.loading-overlay {
+.loading-overlay,
+.buffering-overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -41,8 +42,14 @@
   z-index: 2;
 }
 
+.buffering-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
 .transcoding-spinner,
-.loading-spinner {
+.loading-spinner,
+.buffering-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.15);
@@ -56,7 +63,8 @@
 }
 
 .transcoding-overlay p,
-.loading-overlay p {
+.loading-overlay p,
+.buffering-overlay p {
   margin: 0;
   font-size: 14px;
 }

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -16,13 +17,15 @@ public class BlobStorageService : IBlobStorageService
     private readonly IMinioClient _minioClient;
     private readonly BlobStorageOptions _options;
     private readonly ILogger<BlobStorageService> _logger;
+    private readonly HttpClient _httpClient;
 
     public BlobStorageService( IMinioClient minioClient, BlobStorageOptions options,
-        ILogger<BlobStorageService> logger)
+        ILogger<BlobStorageService> logger, HttpClient httpClient)
     {
         _minioClient = minioClient;
         _options = options;
         _logger = logger;
+        _httpClient = httpClient;
     }
 
     /// <summary>
@@ -125,30 +128,7 @@ public class BlobStorageService : IBlobStorageService
             }
 
             // Calculate SHA256
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_options.Timeouts.VerificationTimeoutSeconds));
-            using var stream = new MemoryStream();
-            var tcs = new TaskCompletionSource();
-
-            var getObjectArgs = new GetObjectArgs()
-                .WithBucket(bucket)
-                .WithObject(objectPath)
-                .WithCallbackStream(async (s) =>
-                {
-                    try
-                    {
-                        await s.CopyToAsync(stream, cts.Token);
-                        tcs.SetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.SetException(ex);
-                    }
-                });
-
-            await _minioClient.GetObjectAsync(getObjectArgs, cts.Token);
-            await tcs.Task;
-
-            stream.Seek(0, SeekOrigin.Begin);
+            using var stream = await DownloadFileAsync(bucket, objectPath);
             var calculatedHash = await ComputeSha256Async(stream);
 
             // Check hash
@@ -187,44 +167,66 @@ public class BlobStorageService : IBlobStorageService
 
     public async Task<Stream> DownloadFileAsync(string bucket, string objectPath)
     {
-        try
+        const int maxAttempts = 3;
+        Exception? lastError = null;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            _logger.LogInformation("Starting download from {Bucket}/{ObjectPath}", bucket, objectPath);
+            try
+            {
+                _logger.LogInformation("Downloading {Bucket}/{ObjectPath} (attempt {Attempt}/{MaxAttempts})",
+                    bucket, objectPath, attempt, maxAttempts);
 
-            var stream = new MemoryStream();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_options.Timeouts.DownloadTimeoutSeconds));
-            var tcs = new TaskCompletionSource();
+                // Build a signed URL with the SDK (pure computation, no network call),
+                // then stream the body directly with our own HttpClient. This avoids the
+                // SDK's GetObjectAsync callback path, whose response stream is disposed
+                // asynchronously and causes intermittent truncated downloads.
+                var presignedUrl = await _minioClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucket)
+                        .WithObject(objectPath)
+                        .WithExpiry(60));
 
-            var getObjectArgs = new GetObjectArgs()
-                .WithBucket(bucket)
-                .WithObject(objectPath)
-                .WithCallbackStream(async (s) =>
-                {
-                    try
-                    {
-                        await s.CopyToAsync(stream, cts.Token);
-                        tcs.SetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.SetException(ex);
-                    }
-                });
+                var attemptTimeout = TimeSpan.FromSeconds(Math.Min(_options.Timeouts.DownloadTimeoutSeconds, 60));
+                using var cts = new CancellationTokenSource(attemptTimeout);
 
-            await _minioClient.GetObjectAsync(getObjectArgs, cts.Token);
-            await tcs.Task;
+                using var response = await _httpClient.GetAsync(presignedUrl,
+                    HttpCompletionOption.ResponseHeadersRead, cts.Token);
 
-            stream.Seek(0, SeekOrigin.Begin);
-            _logger.LogInformation("Successfully downloaded {Bytes} bytes from {Bucket}/{ObjectPath}",
-                stream.Length, bucket, objectPath);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    throw new HttpRequestException(
+                        $"Object not found: {bucket}/{objectPath}", null, HttpStatusCode.NotFound);
 
-            return stream;
+                response.EnsureSuccessStatusCode();
+
+                var stream = new MemoryStream();
+                await using var body = await response.Content.ReadAsStreamAsync(cts.Token);
+                await body.CopyToAsync(stream, cts.Token);
+                stream.Seek(0, SeekOrigin.Begin);
+
+                _logger.LogInformation("Successfully downloaded {Bytes} bytes from {Bucket}/{ObjectPath} (attempt {Attempt})",
+                    stream.Length, bucket, objectPath, attempt);
+
+                return stream;
+            }
+            catch (Exception ex) when (
+                attempt < maxAttempts &&
+                ex is not HttpRequestException { StatusCode: HttpStatusCode.NotFound })
+            {
+                lastError = ex;
+                _logger.LogWarning(ex,
+                    "Download attempt {Attempt}/{MaxAttempts} failed for {Bucket}/{ObjectPath}; retrying in {Delay}ms",
+                    attempt, maxAttempts, bucket, objectPath, attempt * 250);
+                await Task.Delay(TimeSpan.FromMilliseconds(attempt * 250));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Download failed for {Bucket}/{ObjectPath}", bucket, objectPath);
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Download failed for {Bucket}/{ObjectPath}", bucket, objectPath);
-            throw;
-        }
+
+        throw new InvalidOperationException("Download failed after exhausting retries.", lastError);
     }
 
     
