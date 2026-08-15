@@ -5,5 +5,5 @@ namespace EssLearn.Core.Interfaces;
 
 public interface IDashboardService
 {
-    Task<DashboardDto> GetAsync();
+    Task<DashboardDto> GetAsync(string? range = null);
 }

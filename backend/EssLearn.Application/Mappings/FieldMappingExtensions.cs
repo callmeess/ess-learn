@@ -23,11 +23,15 @@ public static class FieldMappingExtensions
     {
         var videos = f.Playlists.SelectMany(p => p.Videos).ToList();
         var completed = videos.Count(v => v.Progress?.Status == VideoStatus.Completed);
+        var watchedVideos = videos.Count(v => v.Progress is not null && v.Progress.Status != VideoStatus.NotStarted);
         return new FieldSummaryDto(
             f.Id, f.Name, f.Color,
             f.Playlists.Count,
             videos.Count,
+            watchedVideos,
             completed,
+            videos.Sum(v => (long)v.DurationSeconds),
+            videos.Sum(v => (long)(v.Progress?.WatchedSeconds ?? 0)),
             videos.Count > 0 ? Math.Round((double)completed / videos.Count * 100, 1) : 0
         );
     }

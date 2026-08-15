@@ -4,7 +4,7 @@
       <h2>Analytics</h2>
       <p>Track your learning progress and insights</p>
     </div>
-    <select [(ngModel)]="timeRange">
+    <select [(ngModel)]="timeRange" (change)="onRangeChange()">
       <option value="week">This Week</option>
       <option value="month">This Month</option>
       <option value="quarter">This Quarter</option>
@@ -18,12 +18,12 @@
       <p class="lbl">Total Watch Time</p>
     </article>
     <article class="card">
-      <p class="num">{{ totalVideos }}</p>
+      <p class="num">{{ watchedVideos }}</p>
       <p class="lbl">Videos Watched</p>
     </article>
     <article class="card">
       <p class="num">{{ completedVideos }}</p>
-      <p class="lbl">Completed Videos</p>
+      <p class="lbl">Completed in Range</p>
     </article>
     <article class="card">
       <p class="num">{{ averageDurationHours.toFixed(1) }}h</p>

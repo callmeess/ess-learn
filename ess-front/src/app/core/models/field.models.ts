@@ -32,6 +32,9 @@ export interface FieldSummaryDto {
   color: string;
   playlistCount: number;
   videoCount: number;
+  watchedVideos: number;
   completedVideos: number;
+  totalDurationSeconds: number;
+  watchedSeconds: number;
   progress: number;
 }

@@ -5,6 +5,7 @@ export interface DashboardDto {
   totalFields: number;
   totalPlaylists: number;
   totalVideos: number;
+  watchedVideos: number;
   completedVideos: number;
   totalDurationSeconds: number;
   watchedSeconds: number;

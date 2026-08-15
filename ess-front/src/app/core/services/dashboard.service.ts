@@ -7,7 +7,7 @@ import { DashboardDto } from '../models';
 export class DashboardService {
   constructor(private readonly api: ApiService) {}
 
-  getDashboard(): Observable<DashboardDto> {
-    return this.api.getDashboard();
+  getDashboard(range?: string): Observable<DashboardDto> {
+    return this.api.getDashboard(range);
   }
 }

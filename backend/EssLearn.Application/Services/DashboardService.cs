@@ -1,5 +1,4 @@
 using EssLearn.Application.Dtos;
-using EssLearn.Application.Mappings;
 using EssLearn.Core.Enums;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Core.Interfaces;
@@ -18,37 +17,68 @@ public class DashboardService : IDashboardService
         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)
     };
 
+    private static readonly string[] SupportedRanges = ["all", "week", "month", "quarter"];
+
     public DashboardService(AppDbContext dbContext, IDistributedCache cache)
     {
         _dbContext = dbContext;
         _cache = cache;
     }
 
-    public async Task<DashboardDto> GetAsync()
+    public async Task<DashboardDto> GetAsync(string? range = null)
     {
-        const string cacheKey = "dashboard:stats";
+        var normalized = NormalizeRange(range);
+        var cacheKey = StatsCacheKeys.KeyFor(normalized);
         var cached = await _cache.GetStringAsync(cacheKey);
         if (cached is not null)
-            return JsonSerializer.Deserialize<DashboardDto>(cached) ?? new DashboardDto(0, 0, 0, 0, 0, 0, 0, [], []);
+            return JsonSerializer.Deserialize<DashboardDto>(cached) ?? Empty();
 
-        var fields = await _dbContext.LearningFields
-            .Include(f => f.Playlists).ThenInclude(p => p.Videos).ThenInclude(v => v.Progress)
-            .OrderBy(f => f.Name)
+        var from = RangeFrom(normalized);
+
+        var fieldStats = await _dbContext.LearningFields
+            .Select(f => new
+            {
+                f.Id,
+                f.Name,
+                f.Color,
+                PlaylistCount = f.Playlists.Count(),
+                VideoCount = f.Playlists.SelectMany(p => p.Videos).Count(),
+                WatchedVideos = f.Playlists.SelectMany(p => p.Videos).Count(v => v.Progress != null && v.Progress.Status != VideoStatus.NotStarted),
+                CompletedVideos = f.Playlists.SelectMany(p => p.Videos).Count(v =>
+                    v.Progress != null &&
+                    v.Progress.Status == VideoStatus.Completed &&
+                    (from == null || v.Progress.CompletedAt >= from)),
+                TotalDurationSeconds = f.Playlists.SelectMany(p => p.Videos).Sum(v => (long)v.DurationSeconds),
+                WatchedSeconds = f.Playlists.SelectMany(p => p.Videos).Sum(v => v.Progress != null ? (long)v.Progress.WatchedSeconds : 0L)
+            })
+            .OrderBy(x => x.Name)
             .ToListAsync();
 
-        var allVideos = fields.SelectMany(f => f.Playlists).SelectMany(p => p.Videos).ToList();
+        var totalFields = fieldStats.Count;
+        var totalPlaylists = fieldStats.Sum(f => f.PlaylistCount);
+        var totalVideos = fieldStats.Sum(f => f.VideoCount);
+        var watchedVideos = fieldStats.Sum(f => f.WatchedVideos);
+        var completedVideos = fieldStats.Sum(f => f.CompletedVideos);
+        var totalDuration = fieldStats.Sum(f => f.TotalDurationSeconds);
+        var watchedSeconds = fieldStats.Sum(f => f.WatchedSeconds);
 
-        var totalDuration = allVideos.Sum(v => v.DurationSeconds);
-        var watchedSeconds = allVideos.Sum(v => v.Progress?.WatchedSeconds ?? 0);
-        var completedVideos = allVideos.Count(v => v.Progress?.Status == VideoStatus.Completed);
-
-        var fieldSummaries = fields.Select(f => f.ToSummaryDto()).ToList();
+        var fieldSummaries = fieldStats.Select(f => new FieldSummaryDto(
+            f.Id,
+            f.Name,
+            f.Color,
+            f.PlaylistCount,
+            f.VideoCount,
+            f.WatchedVideos,
+            f.CompletedVideos,
+            f.TotalDurationSeconds,
+            f.WatchedSeconds,
+            f.VideoCount > 0 ? Math.Round((double)f.CompletedVideos / f.VideoCount * 100, 1) : 0
+        )).ToList();
 
         var recentlyWatched = await _dbContext.VideoProgresses
-            .Where(p => p.LastWatchedAt != null)
+            .Where(p => p.LastWatchedAt != null && (from == null || p.LastWatchedAt >= from))
             .OrderByDescending(p => p.LastWatchedAt)
             .Take(10)
-            .Include(p => p.Video).ThenInclude(v => v.Playlist)
             .Select(p => new RecentVideoDto(
                 p.VideoId,
                 p.Video.Title,
@@ -61,13 +91,14 @@ public class DashboardService : IDashboardService
             .ToListAsync();
 
         var dashboard = new DashboardDto(
-            fields.Count,
-            fields.Sum(f => f.Playlists.Count),
-            allVideos.Count,
+            totalFields,
+            totalPlaylists,
+            totalVideos,
+            watchedVideos,
             completedVideos,
             totalDuration,
             watchedSeconds,
-            allVideos.Count > 0 ? Math.Round((double)completedVideos / allVideos.Count * 100, 1) : 0,
+            totalVideos > 0 ? Math.Round((double)completedVideos / totalVideos * 100, 1) : 0,
             fieldSummaries,
             recentlyWatched
         );
@@ -75,4 +106,17 @@ public class DashboardService : IDashboardService
         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dashboard), CacheOptions);
         return dashboard;
     }
+
+    private static string NormalizeRange(string? range) =>
+        SupportedRanges.Contains(range, StringComparer.OrdinalIgnoreCase) ? range!.ToLowerInvariant() : "all";
+
+    private static DateTime? RangeFrom(string range) => range switch
+    {
+        "week" => DateTime.UtcNow.AddDays(-7),
+        "month" => DateTime.UtcNow.AddDays(-30),
+        "quarter" => DateTime.UtcNow.AddDays(-90),
+        _ => null
+    };
+
+    private static DashboardDto Empty() => new(0, 0, 0, 0, 0, 0, 0, 0, [], []);
 }

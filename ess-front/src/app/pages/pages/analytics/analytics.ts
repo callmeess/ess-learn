@@ -37,7 +37,7 @@ export class AnalyticsPageComponent {
 
     return this.dashboard.fields.map((field) => ({
       topic: field.name,
-      hours: this.averageHoursByVideos(field.videoCount, this.dashboard?.watchedSeconds ?? 0, this.dashboard?.totalVideos ?? 0),
+      hours: (field.watchedSeconds ?? 0) / 3600,
       videos: field.videoCount
     }));
   }
@@ -48,6 +48,10 @@ export class AnalyticsPageComponent {
 
   get totalVideos(): number {
     return this.dashboard?.totalVideos ?? 0;
+  }
+
+  get watchedVideos(): number {
+    return this.dashboard?.watchedVideos ?? 0;
   }
 
   get completedVideos(): number {
@@ -63,11 +67,15 @@ export class AnalyticsPageComponent {
     return (this.dashboard?.totalDurationSeconds ?? 0) / totalVideos / 3600;
   }
 
+  onRangeChange(): void {
+    this.loadDashboard();
+  }
+
   loadDashboard(): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.dashboardService.getDashboard().subscribe({
+    this.dashboardService.getDashboard(this.timeRange).subscribe({
       next: (dashboard) => {
         this.dashboard = dashboard;
         this.isLoading = false;
@@ -79,14 +87,5 @@ export class AnalyticsPageComponent {
         this.cdr.markForCheck();
       }
     });
-  }
-
-  private averageHoursByVideos(fieldVideos: number, watchedSeconds: number, totalVideos: number): number {
-    if (fieldVideos === 0 || totalVideos === 0) {
-      return 0;
-    }
-
-    const estimatedSeconds = (fieldVideos / totalVideos) * watchedSeconds;
-    return estimatedSeconds / 3600;
   }
 }

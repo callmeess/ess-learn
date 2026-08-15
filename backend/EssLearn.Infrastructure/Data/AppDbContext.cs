@@ -64,6 +64,8 @@ public class AppDbContext : DbContext
         {
             e.HasKey(vp => vp.Id);
             e.HasIndex(vp => vp.VideoId).IsUnique();
+            e.HasIndex(vp => vp.LastWatchedAt);
+            e.HasIndex(vp => vp.Status);
             e.HasOne(vp => vp.Video).WithOne(v => v.Progress).HasForeignKey<VideoProgress>(vp => vp.VideoId).OnDelete(DeleteBehavior.Cascade);
         });
 

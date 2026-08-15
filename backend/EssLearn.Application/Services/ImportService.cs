@@ -6,6 +6,7 @@ using EssLearn.Core.Interfaces;
 using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
 namespace EssLearn.Infrastructure.Services;
@@ -18,6 +19,7 @@ public class ImportService : IImportService
     private readonly IBlobStorageService _blobStorage;
     private readonly BlobStorageOptions _blobOptions;
     private readonly ILogger<ImportService> _logger;
+    private readonly IDistributedCache _cache;
     private static readonly HttpClient _thumbClient = new();
 
     public ImportService(
@@ -26,7 +28,8 @@ public class ImportService : IImportService
         IYtDlpService ytdlpService,
         IBlobStorageService blobStorage,
         BlobStorageOptions blobOptions,
-        ILogger<ImportService> logger)
+        ILogger<ImportService> logger,
+        IDistributedCache cache)
     {
         _unitOfWork = unitOfWork;
         _dbContext = dbContext;
@@ -34,6 +37,7 @@ public class ImportService : IImportService
         _blobStorage = blobStorage;
         _blobOptions = blobOptions;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<ImportResultDto> ImportVideoAsync(ImportVideoDto dto)
@@ -79,6 +83,7 @@ public class ImportService : IImportService
             await _unitOfWork.Videos.AddAsync(newVideo);
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitAsync();
+            await InvalidateDashboardCacheAsync();
 
             _ = UploadThumbnailAsync(newVideo, dto.FieldId, playlist.Id);
 
@@ -182,6 +187,7 @@ public class ImportService : IImportService
 
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitAsync();
+            await InvalidateDashboardCacheAsync();
 
             foreach (var video in videosToImport)
             {
@@ -257,6 +263,14 @@ public class ImportService : IImportService
         await _unitOfWork.SaveChangesAsync();
 
         return unsorted;
+    }
+
+    private async Task InvalidateDashboardCacheAsync()
+    {
+        foreach (var key in StatsCacheKeys.All())
+        {
+            await _cache.RemoveAsync(key);
+        }
     }
 
     private static string? ExtractVideoId(string url)

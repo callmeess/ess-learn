@@ -44,8 +44,13 @@ export class ApiService {
   constructor(private readonly http: HttpClient) {}
 
   // Dashboard
-  getDashboard(): Observable<DashboardDto> {
-    return this.http.get<DashboardDto>(`${this.baseUrl}/api/dashboard`);
+  getDashboard(range?: string): Observable<DashboardDto> {
+    let params = new HttpParams();
+    if (range && range !== 'all') {
+      params = params.set('range', range);
+    }
+
+    return this.http.get<DashboardDto>(`${this.baseUrl}/api/dashboard`, { params });
   }
 
   // Fields
