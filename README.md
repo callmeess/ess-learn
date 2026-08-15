@@ -76,24 +76,9 @@ npm run start
 Create a `.env` file at the repo root:
 
 ```
-YOUTUBE_API_KEY=your_key_here
 MINIO_ROOT_USER=esslearn
 MINIO_ROOT_PASSWORD=your_password
 ```
 
 `yt-dlp` must be available in the runtime environment for import and download features (installed automatically inside the API Docker image).
 
-## API Overview
-
-Primary endpoints (full reference available via Swagger):
-
-| Area          | Endpoints                                                     |
-| ------------- | ------------------------------------------------------------- |
-| Import        | `POST /api/import/playlist`, `POST /api/import/video`         |
-| Fields        | `GET/POST/PUT/DELETE /api/fields`                             |
-| Playlists     | `GET/POST/PUT/DELETE /api/playlists`                          |
-| Videos        | `GET/PUT /api/videos/{id}`, progress, thumbnail               |
-| Downloads     | `GET /api/videos/{id}/download/formats`, `POST/DELETE`         |
-| Streaming     | `GET /api/streaming/{videoId}/status`, `/master.m3u8`         |
-| Roadmaps      | `GET/POST/PUT/DELETE /api/roadmaps`, nodes                    |
-| Dashboard     | `GET /api/dashboard`                                          |
