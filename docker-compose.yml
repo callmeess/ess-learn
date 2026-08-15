@@ -49,15 +49,12 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./ess-front
       dockerfile: Dockerfile
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend/src:/app/src
-      #- ./frontend/index.html:/app/index.html
+      - "5173:4000"
     environment:
-      VITE_API_URL: "http://localhost:5083"
+      PORT: "4000"
     depends_on:
       - db
       - redis
