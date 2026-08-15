@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -52,7 +52,8 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly playlistService: PlaylistService,
     private readonly fieldService: FieldService,
-    private readonly videoService: VideoService
+    private readonly videoService: VideoService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -103,10 +104,12 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
         next: (detail) => {
           this.detail = detail;
           this.isLoading = false;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.errorMessage = 'Unable to load playlist.';
           this.isLoading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -117,6 +120,7 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
       this.fieldService.getFields().subscribe({
         next: (fields) => {
           this.fields = fields;
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -128,6 +132,7 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
       this.videoService.getVideos().subscribe({
         next: (videos) => {
           this.libraryVideos = videos;
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -157,10 +162,12 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
           this.addSearch = '';
           this.loadDetail();
           this.loadLibrary();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.addError = 'Unable to add the selected videos.';
           this.isAdding = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -171,6 +178,7 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
       this.playlistService.removeVideoFromPlaylist(this.playlistId, videoId).subscribe({
         next: () => {
           this.loadDetail();
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -211,10 +219,12 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
           this.isSaving = false;
           this.showDialog = false;
           this.loadDetail();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.formError = err.error?.message ?? 'Unable to save the playlist.';
           this.isSaving = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -231,6 +241,7 @@ export class PlaylistDetailPageComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.isDeleting = false;
+          this.cdr.markForCheck();
         }
       })
     );

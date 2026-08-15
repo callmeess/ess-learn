@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
@@ -69,7 +69,8 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     private readonly searchState: SearchStateService,
     private readonly videoService: VideoService,
     private readonly downloadService: DownloadService,
-    private readonly streamingService: StreamingService
+    private readonly streamingService: StreamingService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -100,6 +101,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
       next: (formats) => {
         if (formats.length === 0) {
           video.isDownloading = false;
+          this.cdr.markForCheck();
           return;
         }
 
@@ -110,11 +112,13 @@ export class VideosPageComponent implements OnInit, OnDestroy {
           },
           error: () => {
             video.isDownloading = false;
+            this.cdr.markForCheck();
           }
         });
       },
       error: () => {
         video.isDownloading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -144,6 +148,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         video.isTranscoding = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -158,6 +163,7 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     this.downloadService.deleteDownload(video.id).subscribe({
       next: () => {
         video.downloaded = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -188,9 +194,11 @@ export class VideosPageComponent implements OnInit, OnDestroy {
           } else if (progress.status === 'Failed') {
             video.isDownloading = false;
           }
+          this.cdr.markForCheck();
         },
         error: () => {
           video.isDownloading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -211,9 +219,11 @@ export class VideosPageComponent implements OnInit, OnDestroy {
               video.transcoded = true;
             }
           }
+          this.cdr.markForCheck();
         },
         error: () => {
           video.isTranscoding = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -228,10 +238,12 @@ export class VideosPageComponent implements OnInit, OnDestroy {
       next: (videos) => {
         this.videos = videos.map((video) => this.mapVideo(video));
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.errorMessage = 'Unable to load videos. Make sure the API is running on port 5083.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }

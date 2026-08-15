@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -41,7 +41,8 @@ export class PlaylistsPageComponent implements OnInit {
 
   constructor(
     private readonly playlistService: PlaylistService,
-    private readonly fieldService: FieldService
+    private readonly fieldService: FieldService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -66,10 +67,12 @@ export class PlaylistsPageComponent implements OnInit {
         this.playlistDtos = playlists;
         this.playlists = playlists.map((playlist) => this.mapPlaylist(playlist));
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.errorMessage = 'Unable to load playlists. Make sure the API is running on port 5083.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -81,6 +84,7 @@ export class PlaylistsPageComponent implements OnInit {
         if (this.showDialog && this.formFieldId === null && fields.length > 0) {
           this.formFieldId = fields[0].id;
         }
+        this.cdr.markForCheck();
       },
       error: () => {}
     });
@@ -133,10 +137,12 @@ export class PlaylistsPageComponent implements OnInit {
         this.showDialog = false;
         this.editingPlaylist = null;
         this.loadPlaylists();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.formError = err.error?.message ?? 'Unable to save the playlist.';
         this.isSaving = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -154,6 +160,7 @@ export class PlaylistsPageComponent implements OnInit {
       next: () => {
         this.deleteConfirmId = null;
         this.loadPlaylists();
+        this.cdr.markForCheck();
       },
       error: () => {}
     });

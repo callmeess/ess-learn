@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
@@ -76,7 +76,8 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly videoService: VideoService,
     private readonly downloadService: DownloadService,
-    private readonly streamingService: StreamingService
+    private readonly streamingService: StreamingService,
+    private readonly cdr: ChangeDetectorRef
   ) {
     const idValue = Number.parseInt(route.snapshot.params['id'] ?? '0', 10);
     this.videoId = Number.isNaN(idValue) ? 0 : idValue;
@@ -152,6 +153,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
             this.video.statusLabel = this.statusLabel(this.video.status, this.video.watchedSeconds, this.video.durationSeconds);
           }
           this.showToast(err.error?.message || 'Failed to start download');
+          this.cdr.markForCheck();
         }
       })
     );
@@ -171,6 +173,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.isTranscoding = false;
         this.showToast(err.error?.message || 'Failed to start transcoding');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -178,6 +181,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
   showToast(message: string): void {
     this.toastMessage = message;
     this.toastVisible = true;
+    this.cdr.markForCheck();
 
     if (this.toastTimer) {
       window.clearTimeout(this.toastTimer);
@@ -185,6 +189,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
 
     this.toastTimer = window.setTimeout(() => {
       this.toastVisible = false;
+      this.cdr.markForCheck();
     }, 3500);
   }
 
@@ -204,11 +209,13 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
         } else if (progress.status === 'Failed') {
           this.onDownloadFailed(progress.errorMessage);
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isDownloading = false;
         this.downloadProgress = 0;
         this.downloadStatusText = '';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -229,6 +236,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.downloadProgress = 0;
       this.downloadStatusText = '';
+      this.cdr.markForCheck();
     }, 3000);
 
     this.checkStreamingStatus();
@@ -295,10 +303,12 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
           this.loadDownloadStatus();
           this.checkForActiveDownload();
           this.isLoading = false;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.errorMessage = 'Unable to load video details. Make sure the API is running on port 5083.';
           this.isLoading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -314,6 +324,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
             this.downloadStatusText = this.getDownloadStatusText(progress.status);
             this.startProgressPolling();
           }
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -331,6 +342,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
           if (status.isTranscoding) {
             this.pollTranscodeProgress();
           }
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -353,9 +365,11 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
         } else if (!status.isTranscoding) {
           this.isTranscoding = false;
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isTranscoding = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -371,11 +385,13 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
           this.selectedFormat = this.formats[0]?.id ?? '';
           this.formatsLoading = false;
           this.formatsLoaded = true;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.formats = [];
           this.formatsLoading = false;
           this.formatsError = 'Failed to load video formats. You can still use the default format.';
+          this.cdr.markForCheck();
         }
       })
     );
@@ -396,6 +412,7 @@ export class VideoDetailPageComponent implements OnInit, OnDestroy {
             this.video.statusLabel = 'Downloaded';
             this.checkStreamingStatus();
           }
+          this.cdr.markForCheck();
         },
         error: () => {}
       })

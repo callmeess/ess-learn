@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval, fromEvent } from 'rxjs';
@@ -59,7 +59,8 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     private readonly videoService: VideoService,
     private readonly playlistService: PlaylistService,
     private readonly downloadService: DownloadService,
-    private readonly streamingService: StreamingService
+    private readonly streamingService: StreamingService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -124,10 +125,12 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           }
 
           this.checkDownloadStatus();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.errorMessage = 'Failed to load video.';
           this.videoLoading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -139,6 +142,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
         next: (detail) => {
           this.playlistTitle = detail.playlist.title;
           this.totalCount = detail.playlist.totalVideos;
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -157,9 +161,11 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           this.hasMoreVideos = result.hasMore;
           this.totalCount = result.totalCount;
           this.loadingPage = false;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.loadingPage = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -179,6 +185,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           if (this.isDownloaded) {
             this.checkStreamingStatus();
           }
+          this.cdr.markForCheck();
         },
         error: () => {
           if (videoId !== this.currentVideoId) return;
@@ -203,10 +210,12 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           } else if (status.isTranscoding || this.isDownloaded) {
             this.pollTranscodingStatus();
           }
+          this.cdr.markForCheck();
         },
         error: () => {
           if (videoId !== this.currentVideoId) return;
           this.errorMessage = 'Failed to check streaming status.';
+          this.cdr.markForCheck();
         }
       })
     );
@@ -224,6 +233,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           if (formats.length === 0) {
             this.isDownloading = false;
             this.errorMessage = 'No download formats available.';
+            this.cdr.markForCheck();
             return;
           }
 
@@ -234,11 +244,13 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             },
             error: () => {
               this.isDownloading = false;
+              this.cdr.markForCheck();
             }
           });
         },
         error: () => {
           this.isDownloading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -258,6 +270,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
         error: () => {
           this.isTranscoding = false;
           this.errorMessage = 'Failed to start transcoding.';
+          this.cdr.markForCheck();
         }
       })
     );
@@ -283,10 +296,12 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           this.isDownloading = false;
           this.stopPolls();
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isDownloading = false;
         this.stopPolls();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -309,10 +324,12 @@ export class WatchPageComponent implements OnInit, OnDestroy {
           this.isTranscoding = false;
           this.stopPolls();
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isTranscoding = false;
         this.stopPolls();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -371,6 +388,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
               this.hls?.destroy();
               this.hls = null;
               this.errorMessage = 'Failed to play this video. Please try again.';
+              this.cdr.markForCheck();
               break;
           }
           return;
@@ -404,6 +422,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
     this.videoLoading = false;
     this.isBuffering = false;
     this.clearStallTimer();
+    this.cdr.markForCheck();
   }
 
   private setupPlayerEvents(video: HTMLVideoElement): void {
@@ -414,6 +433,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
       fromEvent(video, 'waiting').subscribe(() => {
         this.isBuffering = true;
         this.armStallTimer();
+        this.cdr.markForCheck();
       })
     );
 
@@ -423,6 +443,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
         this.isDownloading = false;
         this.isTranscoding = false;
         this.errorMessage = '';
+        this.cdr.markForCheck();
       })
     );
 
@@ -525,6 +546,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             playlistItem.watchedSeconds = progress.watchedSeconds;
             playlistItem.status = progress.status;
           }
+          this.cdr.markForCheck();
         }
       });
     });
@@ -554,6 +576,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             playlistItem.watchedSeconds = progress.watchedSeconds;
             playlistItem.status = progress.status;
           }
+          this.cdr.markForCheck();
         }
       })
     );
@@ -571,6 +594,7 @@ export class WatchPageComponent implements OnInit, OnDestroy {
             this.playlist = [...this.playlist, ...result.videos];
             this.hasMoreVideos = result.hasMore;
             this.currentPage = result.page;
+            this.cdr.markForCheck();
             const nextVideo = this.playlist.find(v => v.id !== this.currentVideoId);
             if (nextVideo) this.selectVideo(nextVideo);
           }

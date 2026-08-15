@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SearchStateService } from './search-state.service';
 import { FieldService, ImportService, PlaylistService } from './core/services';
@@ -53,7 +53,8 @@ export class AppShellComponent implements OnInit {
     private readonly searchState: SearchStateService,
     private readonly fieldService: FieldService,
     private readonly playlistService: PlaylistService,
-    private readonly importService: ImportService
+    private readonly importService: ImportService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -68,6 +69,7 @@ export class AppShellComponent implements OnInit {
           this.importFieldId = fields[0].id;
           this.loadPlaylists();
         }
+        this.cdr.markForCheck();
       },
       error: () => {}
     });
@@ -82,9 +84,11 @@ export class AppShellComponent implements OnInit {
     this.playlistService.getPlaylists(this.importFieldId).subscribe({
       next: (playlists) => {
         this.playlists = playlists;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.playlists = [];
+        this.cdr.markForCheck();
       }
     });
   }
@@ -152,9 +156,11 @@ export class AppShellComponent implements OnInit {
         this.showAddField = false;
         this.isCreatingField = false;
         this.loadPlaylists();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isCreatingField = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -180,10 +186,12 @@ export class AppShellComponent implements OnInit {
       next: (result) => {
         this.importResult = result;
         this.isImporting = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.importError = err.error?.message ?? 'Import failed. Please check the URL and try again.';
         this.isImporting = false;
+        this.cdr.markForCheck();
       }
     });
   }
