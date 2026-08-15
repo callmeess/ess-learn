@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -40,7 +40,10 @@ export class RoadmapsPageComponent implements OnInit {
     color: '#3b82f6'
   };
 
-  constructor(private readonly roadmapService: RoadmapService) {}
+  constructor(
+    private readonly roadmapService: RoadmapService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadRoadmaps();
@@ -51,9 +54,11 @@ export class RoadmapsPageComponent implements OnInit {
       next: (data) => {
         this.roadmaps = data;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -128,17 +133,21 @@ export class RoadmapsPageComponent implements OnInit {
         this.resetForm();
         this.closeCreateForm();
         this.showToast('Roadmap created!');
+        this.cdr.markForCheck();
       },
       error: () => {
         this.showToast('Failed to create roadmap');
+        this.cdr.markForCheck();
       }
     });
   }
 
   showToast(message: string): void {
     this.toastMessage = message;
+    this.cdr.markForCheck();
     window.setTimeout(() => {
       this.toastMessage = '';
+      this.cdr.markForCheck();
     }, 2400);
   }
 }

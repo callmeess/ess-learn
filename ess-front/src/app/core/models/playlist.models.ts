@@ -19,3 +19,23 @@ export interface PlaylistDto {
   channelTitle: string | null;
   createdAt: string;
 }
+
+export interface CreatePlaylistDto {
+  title: string;
+  fieldId: number;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  sourceUrl?: string | null;
+}
+
+export interface UpdatePlaylistDto {
+  title: string;
+  fieldId: number;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  sourceUrl?: string | null;
+}
+
+export interface AddVideosToPlaylistDto {
+  videoIds: number[];
+}

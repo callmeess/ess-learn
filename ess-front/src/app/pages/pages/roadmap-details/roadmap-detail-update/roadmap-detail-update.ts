@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RoadmapService } from '../../../../core/services';
 import { CreateRoadmapNodeDto } from '../../../../core/models';
@@ -47,7 +47,10 @@ export class RoadmapDetailUpdate implements OnChanges {
     return this.addForm.controls.title;
   }
 
-  constructor(private readonly roadmapService: RoadmapService) {}
+  constructor(
+    private readonly roadmapService: RoadmapService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']?.currentValue && !changes['isOpen']?.previousValue) {
@@ -141,6 +144,7 @@ export class RoadmapDetailUpdate implements OnChanges {
       },
       error: () => {
         this.submitted = false;
+        this.cdr.markForCheck();
       }
     });
   }

@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PlaylistService } from '../../../core/services';
-import { PlaylistDto } from '../../../core/models';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { FieldService, PlaylistService } from '../../../core/services';
+import { CreatePlaylistDto, FieldDto, PlaylistDto, UpdatePlaylistDto } from '../../../core/models';
 
 interface Playlist {
   id: number;
@@ -19,15 +21,33 @@ interface Playlist {
   templateUrl: './playlists-page.component.html',
   styleUrls: ['./playlists-page.component.css'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule, RouterModule]
 })
-export class PlaylistsPageComponent {
+export class PlaylistsPageComponent implements OnInit {
   playlists: Playlist[] = [];
+  playlistDtos: PlaylistDto[] = [];
+  fields: FieldDto[] = [];
   isLoading = false;
   errorMessage = '';
 
-  constructor(private readonly playlistService: PlaylistService) {
+  showDialog = false;
+  editingPlaylist: PlaylistDto | null = null;
+  formTitle = '';
+  formFieldId: number | null = null;
+  formDescription = '';
+  isSaving = false;
+  formError = '';
+  deleteConfirmId: number | null = null;
+
+  constructor(
+    private readonly playlistService: PlaylistService,
+    private readonly fieldService: FieldService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
     this.loadPlaylists();
+    this.loadFields();
   }
 
   get totalVideos(): number {
@@ -44,13 +64,105 @@ export class PlaylistsPageComponent {
 
     this.playlistService.getPlaylists().subscribe({
       next: (playlists) => {
+        this.playlistDtos = playlists;
         this.playlists = playlists.map((playlist) => this.mapPlaylist(playlist));
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.errorMessage = 'Unable to load playlists. Make sure the API is running on port 5083.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
+    });
+  }
+
+  loadFields(): void {
+    this.fieldService.getFields().subscribe({
+      next: (fields) => {
+        this.fields = fields;
+        if (this.showDialog && this.formFieldId === null && fields.length > 0) {
+          this.formFieldId = fields[0].id;
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {}
+    });
+  }
+
+  openCreateDialog(): void {
+    this.editingPlaylist = null;
+    this.formTitle = '';
+    this.formDescription = '';
+    this.formFieldId = this.fields.length > 0 ? this.fields[0].id : null;
+    this.formError = '';
+    this.showDialog = true;
+  }
+
+  openEditDialog(playlist: PlaylistDto | null): void {
+    if (!playlist) return;
+    this.editingPlaylist = playlist;
+    this.formTitle = playlist.title;
+    this.formDescription = playlist.description ?? '';
+    this.formFieldId = playlist.fieldId;
+    this.formError = '';
+    this.showDialog = true;
+  }
+
+  closeDialog(): void {
+    if (this.isSaving) return;
+    this.showDialog = false;
+    this.editingPlaylist = null;
+  }
+
+  savePlaylist(): void {
+    if (!this.formTitle.trim() || this.formFieldId === null || this.isSaving) return;
+
+    this.isSaving = true;
+    this.formError = '';
+
+    const payload: UpdatePlaylistDto = {
+      title: this.formTitle.trim(),
+      fieldId: this.formFieldId,
+      description: this.formDescription.trim() || null
+    };
+
+    const request = this.editingPlaylist
+      ? this.playlistService.updatePlaylist(this.editingPlaylist.id, payload)
+      : this.playlistService.createPlaylist(payload as CreatePlaylistDto);
+
+    request.subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.showDialog = false;
+        this.editingPlaylist = null;
+        this.loadPlaylists();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.formError = err.error?.message ?? 'Unable to save the playlist.';
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleDeleteConfirm(id: number): void {
+    this.deleteConfirmId = this.deleteConfirmId === id ? null : id;
+  }
+
+  dtoById(id: number): PlaylistDto | null {
+    return this.playlistDtos.find((p) => p.id === id) ?? null;
+  }
+
+  deletePlaylist(id: number): void {
+    this.playlistService.deletePlaylist(id).subscribe({
+      next: () => {
+        this.deleteConfirmId = null;
+        this.loadPlaylists();
+        this.cdr.markForCheck();
+      },
+      error: () => {}
     });
   }
 

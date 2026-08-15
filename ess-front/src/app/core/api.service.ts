@@ -4,7 +4,9 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   AddPlaylistToRoadmapDto,
+  AddVideosToPlaylistDto,
   CreateFieldDto,
+  CreatePlaylistDto,
   CreateRoadmapDto,
   CreateRoadmapNodeDto,
   DashboardDto,
@@ -26,6 +28,7 @@ import {
   TranscodeResultDto,
   UpdateFieldDto,
   UpdateNodeStatusDto,
+  UpdatePlaylistDto,
   UpdateRoadmapDto,
   UpdateRoadmapNodeDto,
   VideoDto,
@@ -76,12 +79,28 @@ export class ApiService {
     return this.http.get<PlaylistDto[]>(`${this.baseUrl}/api/playlists`, { params });
   }
 
+  createPlaylist(dto: CreatePlaylistDto): Observable<PlaylistDto> {
+    return this.http.post<PlaylistDto>(`${this.baseUrl}/api/playlists`, dto);
+  }
+
+  updatePlaylist(id: number, dto: UpdatePlaylistDto): Observable<PlaylistDto> {
+    return this.http.put<PlaylistDto>(`${this.baseUrl}/api/playlists/${id}`, dto);
+  }
+
   getPlaylist(id: number): Observable<PlaylistDetailDto> {
     return this.http.get<PlaylistDetailDto>(`${this.baseUrl}/api/playlists/${id}`);
   }
 
   deletePlaylist(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/api/playlists/${id}`);
+  }
+
+  addVideosToPlaylist(playlistId: number, dto: AddVideosToPlaylistDto): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/api/playlists/${playlistId}/videos`, dto);
+  }
+
+  removeVideoFromPlaylist(playlistId: number, videoId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/api/playlists/${playlistId}/videos/${videoId}`);
   }
 
   // Videos

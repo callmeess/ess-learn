@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardService } from '../../../core/services';
 import { DashboardDto } from '../../../core/models';
@@ -23,7 +23,10 @@ export class AnalyticsPageComponent {
   errorMessage = '';
   dashboard?: DashboardDto;
 
-  constructor(private readonly dashboardService: DashboardService) {
+  constructor(
+    private readonly dashboardService: DashboardService,
+    private readonly cdr: ChangeDetectorRef
+  ) {
     this.loadDashboard();
   }
 
@@ -68,10 +71,12 @@ export class AnalyticsPageComponent {
       next: (dashboard) => {
         this.dashboard = dashboard;
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.errorMessage = 'Unable to load analytics. Make sure the API is running on port 5083.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }

@@ -14,6 +14,10 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
+    path: 'playlists/:id',
+    renderMode: RenderMode.Client
+  },
+  {
     path: 'reading/:id',
     renderMode: RenderMode.Client
   },

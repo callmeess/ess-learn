@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -40,7 +40,8 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly videoService: VideoService,
-    private readonly downloadService: DownloadService
+    private readonly downloadService: DownloadService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -61,10 +62,12 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
       next: (videos) => {
         this.allVideos = videos.map((v) => this.mapVideo(v));
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.errorMessage = 'Unable to load videos. Make sure the API is running on port 5083.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -109,6 +112,7 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
       next: (formats) => {
         if (formats.length === 0) {
           video.isDownloading = false;
+          this.cdr.markForCheck();
           return;
         }
 
@@ -119,11 +123,13 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
           },
           error: () => {
             video.isDownloading = false;
+            this.cdr.markForCheck();
           }
         });
       },
       error: () => {
         video.isDownloading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -144,9 +150,11 @@ export class DownloadsPageComponent implements OnInit, OnDestroy {
           } else if (progress.status === 'Failed') {
             video.isDownloading = false;
           }
+          this.cdr.markForCheck();
         },
         error: () => {
           video.isDownloading = false;
+          this.cdr.markForCheck();
         }
       })
     );
