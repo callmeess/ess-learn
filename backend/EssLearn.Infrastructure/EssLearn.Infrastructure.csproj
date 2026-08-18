@@ -2,11 +2,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EssLearn.Core\EssLearn.Core.csproj" />
+    <ProjectReference Include="..\EssLearn.Application\EssLearn.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.73.0.4053" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
+    <PackageReference Include="Minio" Version="6.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 

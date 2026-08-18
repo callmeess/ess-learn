@@ -1,17 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
-import { Analytics } from './analytics';
+import { AnalyticsPageComponent } from './analytics';
+import { DashboardService } from '../../../core/services';
+import { DashboardDto } from '../../../core/models';
 
-describe('Analytics', () => {
-  let component: Analytics;
-  let fixture: ComponentFixture<Analytics>;
+describe('AnalyticsPageComponent', () => {
+  let component: AnalyticsPageComponent;
+  let fixture: ComponentFixture<AnalyticsPageComponent>;
 
   beforeEach(async () => {
+    const dashboardServiceStub = {
+      getDashboard: () => of({} as DashboardDto)
+    };
+
     await TestBed.configureTestingModule({
-      imports: [Analytics],
+      imports: [AnalyticsPageComponent],
+      providers: [{ provide: DashboardService, useValue: dashboardServiceStub }]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Analytics);
+    fixture = TestBed.createComponent(AnalyticsPageComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

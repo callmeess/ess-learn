@@ -1,4 +1,4 @@
-using EssLearn.Core.Interfaces;
+using EssLearn.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace EssLearn.Infrastructure.Repositories;

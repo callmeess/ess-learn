@@ -1,4 +1,4 @@
-using EssLearn.Core.Dtos;
+using EssLearn.Application.Dtos;
 
 namespace EssLearn.Application.Interfaces.YtDlp;
 

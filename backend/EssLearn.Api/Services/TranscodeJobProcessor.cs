@@ -1,8 +1,8 @@
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Application.Services.BlobStorage;
+using EssLearn.Application.Interfaces;
 using EssLearn.Core.Entities;
-using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Services.BlobStorage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -129,19 +129,21 @@ public partial class TranscodeJobProcessor : BackgroundService
             var ffmpegArgs = $"-i \"{inputPath}\" " +
                              $"-c:v libx264 -preset fast -crf 23 " +
                              $"-c:a aac -b:a 128k " +
+                             $"-stats " +
                              $"-f hls -hls_time 6 -hls_list_size 0 " +
                              $"-hls_segment_filename \"{segmentPattern}\" " +
                              $"\"{manifestPath}\"";
 
             var totalDuration = pendingJob.Video.DurationSeconds;
-            await RunFfmpegAsync(ffmpegArgs, totalDuration, p =>
+            await RunFfmpegAsync(ffmpegArgs, totalDuration, async p =>
             {
                 pendingJob.ProgressPercent = p;
+                await dbContext.SaveChangesAsync(ct);
             }, ct);
 
             // Step 3: Upload HLS files to MinIO
             pendingJob.Status = TranscodeJobStatus.Uploading;
-            pendingJob.ProgressPercent = 0;
+            pendingJob.ProgressPercent = 99;
             await dbContext.SaveChangesAsync(ct);
 
             var video = pendingJob.Video;
@@ -235,7 +237,7 @@ public partial class TranscodeJobProcessor : BackgroundService
         }
     }
 
-    private async Task RunFfmpegAsync(string arguments, int totalDurationSeconds, Action<double> onProgress, CancellationToken ct)
+    private async Task RunFfmpegAsync(string arguments, int totalDurationSeconds, Func<double, Task> onProgress, CancellationToken ct)
     {
         var ffmpegPath = await FindFfmpegAsync();
 
@@ -266,7 +268,7 @@ public partial class TranscodeJobProcessor : BackgroundService
         }
     }
 
-    private static async Task ReadFfmpegProgressAsync(Process process, int totalDurationSeconds, Action<double> onProgress, CancellationToken ct)
+    private static async Task ReadFfmpegProgressAsync(Process process, int totalDurationSeconds, Func<double, Task> onProgress, CancellationToken ct)
     {
         if (totalDurationSeconds <= 0)
         {
@@ -289,7 +291,7 @@ public partial class TranscodeJobProcessor : BackgroundService
                 var progress = Math.Min(99.0, (currentTime.TotalSeconds / totalDurationSeconds) * 100.0);
                 if (Math.Abs(progress - lastReportedProgress) >= 1.0)
                 {
-                    onProgress(Math.Round(progress, 1));
+                    await onProgress(Math.Round(progress, 1));
                     lastReportedProgress = progress;
                 }
             }

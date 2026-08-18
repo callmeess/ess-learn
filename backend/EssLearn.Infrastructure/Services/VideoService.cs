@@ -1,10 +1,12 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Interfaces;
 using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
-using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace EssLearn.Infrastructure.Services;
 
@@ -12,11 +14,13 @@ public class VideoService : IVideoService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppDbContext _dbContext;
+    private readonly IDistributedCache _cache;
 
-    public VideoService(IUnitOfWork unitOfWork, AppDbContext dbContext)
+    public VideoService(IUnitOfWork unitOfWork, AppDbContext dbContext, IDistributedCache cache)
     {
         _unitOfWork = unitOfWork;
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<List<VideoListItemDto>> GetAllAsync(int? playlistId = null, int? fieldId = null)
@@ -80,7 +84,17 @@ public class VideoService : IVideoService
         await _unitOfWork.VideoProgresses.UpdateAsync(progress);
         await _unitOfWork.SaveChangesAsync();
 
+        await InvalidateDashboardCacheAsync();
+
         return progress.ToDto();
+    }
+
+    private async Task InvalidateDashboardCacheAsync()
+    {
+        foreach (var key in StatsCacheKeys.All())
+        {
+            await _cache.RemoveAsync(key);
+        }
     }
 
     public async Task<ProgressDto> GetProgressAsync(int id)

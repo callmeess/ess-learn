@@ -1,6 +1,6 @@
-using EssLearn.Core.Dtos;
+using EssLearn.Application.Dtos;
 
-namespace EssLearn.Core.Interfaces.YtDlp;
+namespace EssLearn.Application.Interfaces.YtDlp;
 
 /// <summary>
 /// Low-level yt-dlp service interface for executing commands

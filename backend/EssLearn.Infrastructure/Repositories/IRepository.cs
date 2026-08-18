@@ -1,4 +1,4 @@
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Infrastructure.Interfaces;
 
 /// <summary>
 /// Generic repository interface for data access operations.

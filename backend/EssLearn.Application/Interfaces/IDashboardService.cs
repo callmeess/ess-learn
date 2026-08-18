@@ -1,9 +1,9 @@
 using EssLearn.Application.Dtos;
 
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Application.Interfaces;
 
 
 public interface IDashboardService
 {
-    Task<DashboardDto> GetAsync();
+    Task<DashboardDto> GetAsync(string? range = null);
 }

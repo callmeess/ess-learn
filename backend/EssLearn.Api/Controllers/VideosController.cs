@@ -1,8 +1,8 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Application.Services.BlobStorage;
-using EssLearn.Core.Interfaces;
+using EssLearn.Application.Interfaces;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Services.BlobStorage;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

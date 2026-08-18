@@ -1,4 +1,4 @@
-namespace EssLearn.Application.Services.BlobStorage;
+namespace EssLearn.Infrastructure.Services.BlobStorage;
 
 
 public static class BlobPathBuilder

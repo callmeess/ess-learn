@@ -1,4 +1,4 @@
-namespace EssLearn.Core.Dtos;
+namespace EssLearn.Application.Dtos;
 
 /// <summary>
 /// Real-time progress update during download

@@ -1,10 +1,12 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Interfaces;
 using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
-using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace EssLearn.Infrastructure.Services;
 
@@ -12,11 +14,13 @@ public class PlaylistService : IPlaylistService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppDbContext _dbContext;
+    private readonly IDistributedCache _cache;
 
-    public PlaylistService(IUnitOfWork unitOfWork, AppDbContext dbContext)
+    public PlaylistService(IUnitOfWork unitOfWork, AppDbContext dbContext, IDistributedCache cache)
     {
         _unitOfWork = unitOfWork;
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<List<PlaylistDto>> GetAllAsync(int? fieldId = null)
@@ -68,6 +72,7 @@ public class PlaylistService : IPlaylistService
 
         await _unitOfWork.Playlists.AddAsync(playlist);
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
 
         return playlist.ToDto();
     }
@@ -95,6 +100,7 @@ public class PlaylistService : IPlaylistService
 
         await _unitOfWork.Playlists.UpdateAsync(playlist);
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
 
         var updated = await _dbContext.Playlists
             .Include(p => p.Videos).ThenInclude(v => v.Progress)
@@ -139,6 +145,7 @@ public class PlaylistService : IPlaylistService
         }
 
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
     }
 
     public async Task<bool> RemoveVideoAsync(int playlistId, int videoId)
@@ -180,6 +187,7 @@ public class PlaylistService : IPlaylistService
 
         await _unitOfWork.Videos.UpdateAsync(video);
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
 
         return true;
     }
@@ -191,6 +199,7 @@ public class PlaylistService : IPlaylistService
         {
             await _unitOfWork.Playlists.RemoveAsync(playlist);
             await _unitOfWork.SaveChangesAsync();
+            await InvalidateDashboardCacheAsync();
         }
     }
 
@@ -210,5 +219,13 @@ public class PlaylistService : IPlaylistService
         var items = videos.Select(v => v.ToListItemDto()).ToList();
 
         return new PaginatedVideosDto(items, totalCount, page, pageSize, page * pageSize < totalCount);
+    }
+
+    private async Task InvalidateDashboardCacheAsync()
+    {
+        foreach (var key in StatsCacheKeys.All())
+        {
+            await _cache.RemoveAsync(key);
+        }
     }
 }

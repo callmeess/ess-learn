@@ -1,6 +1,6 @@
 using EssLearn.Application.Dtos.BlobStorage;
 
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Application.Interfaces;
 
 /// <summary>
 /// Service for managing blob storage operations in MinIO.

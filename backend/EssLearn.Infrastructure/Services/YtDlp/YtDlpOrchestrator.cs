@@ -1,9 +1,8 @@
-using EssLearn.Core.Dtos;
-using EssLearn.Core.Interfaces.YtDlp;
+using EssLearn.Application.Dtos;
 using EssLearn.Application.Interfaces.YtDlp;
 using Microsoft.Extensions.Logging;
 
-namespace EssLearn.Application.Services.YtDlp;
+namespace EssLearn.Infrastructure.Services.YtDlp;
 
 /// <summary>
 /// High-level orchestration service for yt-dlp operations

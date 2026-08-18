@@ -1,6 +1,6 @@
 using EssLearn.Core.Entities;
 
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Application.Interfaces;
 
 public interface IYouTubeService
 {

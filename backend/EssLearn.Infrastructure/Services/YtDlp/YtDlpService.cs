@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using EssLearn.Core.Dtos;
+using EssLearn.Application.Dtos;
 using EssLearn.Core.Exceptions;
-using EssLearn.Core.Interfaces.YtDlp;
+using EssLearn.Application.Interfaces.YtDlp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -244,14 +244,15 @@ public class YtDlpService : IYtDlpService
             _logger.LogDebug("[yt-dlp] {Output}", e.Data);
         };
 
-        // Handle stderr - log errors
+        // Handle stderr - log errors and parse progress (yt-dlp reports progress on stderr)
         process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data == null)
                 return;
 
             stderr.AppendLine(e.Data);
-            _logger.LogWarning("[yt-dlp stderr] {Error}", e.Data);
+            ParseAndReportProgress(e.Data, progress);
+            _logger.LogDebug("[yt-dlp stderr] {Output}", e.Data);
         };
 
         try

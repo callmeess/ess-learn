@@ -1,10 +1,12 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Interfaces;
 using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
-using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace EssLearn.Infrastructure.Services;
 
@@ -12,11 +14,13 @@ public class FieldService : IFieldService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppDbContext _dbContext;
+    private readonly IDistributedCache _cache;
 
-    public FieldService(IUnitOfWork unitOfWork, AppDbContext dbContext)
+    public FieldService(IUnitOfWork unitOfWork, AppDbContext dbContext, IDistributedCache cache)
     {
         _unitOfWork = unitOfWork;
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<List<FieldDto>> GetAllAsync()
@@ -50,6 +54,7 @@ public class FieldService : IFieldService
 
         await _unitOfWork.LearningFields.AddAsync(field);
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
 
         return field.ToDto();
     }
@@ -67,6 +72,7 @@ public class FieldService : IFieldService
 
         await _unitOfWork.LearningFields.UpdateAsync(field);
         await _unitOfWork.SaveChangesAsync();
+        await InvalidateDashboardCacheAsync();
 
         // Reload with related data
         return await GetByIdAsync(id);
@@ -79,6 +85,15 @@ public class FieldService : IFieldService
         {
             await _unitOfWork.LearningFields.RemoveAsync(field);
             await _unitOfWork.SaveChangesAsync();
+            await InvalidateDashboardCacheAsync();
+        }
+    }
+
+    private async Task InvalidateDashboardCacheAsync()
+    {
+        foreach (var key in StatsCacheKeys.All())
+        {
+            await _cache.RemoveAsync(key);
         }
     }
 }

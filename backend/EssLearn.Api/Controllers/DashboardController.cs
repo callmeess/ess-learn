@@ -1,5 +1,5 @@
 using EssLearn.Application.Dtos;
-using EssLearn.Core.Interfaces;
+using EssLearn.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EssLearn.Api.Controllers;
@@ -9,9 +9,9 @@ namespace EssLearn.Api.Controllers;
 public class DashboardController(IDashboardService dashboardService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<DashboardDto>> Get()
+    public async Task<ActionResult<DashboardDto>> Get([FromQuery] string? range = null)
     {
-        var dashboard = await dashboardService.GetAsync();
+        var dashboard = await dashboardService.GetAsync(range);
         return Ok(dashboard);
     }
 }
