@@ -1,11 +1,10 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Application.Services.BlobStorage;
-using EssLearn.Core.Dtos;
+using EssLearn.Application.Interfaces;
+using EssLearn.Application.Interfaces.YtDlp;
 using EssLearn.Core.Entities;
-using EssLearn.Core.Interfaces;
-using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Services.BlobStorage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,6 +17,7 @@ public class DownloadJobProcessor : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DownloadJobProcessor> _logger;
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(2);
+    private readonly SemaphoreSlim _dbLock = new(1, 1);
 
     public DownloadJobProcessor(IServiceProvider serviceProvider, ILogger<DownloadJobProcessor> logger)
     {
@@ -71,15 +71,33 @@ public class DownloadJobProcessor : BackgroundService
 
         pendingJob.Status = DownloadJobStatus.Downloading;
         pendingJob.UpdatedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(ct);
+        await SaveChangesGuardedAsync(dbContext, ct);
 
         try
         {
-            // Step 1: Download via yt-dlp with progress reporting
-            var progress = new Progress<DownloadProgressDto>(p =>
+            // Step 1: Download via yt-dlp with progress reporting.
+            // A synchronous progress reporter persists progress to the DB as it
+            // arrives (yt-dlp reports progress on stderr). Access is serialized
+            // with the main flow via _dbLock.
+            var lastReported = -1.0;
+            var progress = new SyncProgress<DownloadProgressDto>(p =>
             {
+                if (p.PercentComplete < 0 || Math.Abs(p.PercentComplete - lastReported) < 1.0)
+                    return;
+
+                lastReported = p.PercentComplete;
                 pendingJob.ProgressPercent = p.PercentComplete;
                 pendingJob.UpdatedAt = DateTime.UtcNow;
+
+                _dbLock.Wait();
+                try
+                {
+                    dbContext.SaveChanges();
+                }
+                finally
+                {
+                    _dbLock.Release();
+                }
             });
 
             var request = new DownloadRequestDto
@@ -107,7 +125,7 @@ public class DownloadJobProcessor : BackgroundService
             pendingJob.Status = DownloadJobStatus.Uploading;
             pendingJob.ProgressPercent = 95;
             pendingJob.UpdatedAt = DateTime.UtcNow;
-            await dbContext.SaveChangesAsync(ct);
+            await SaveChangesGuardedAsync(dbContext, ct);
 
             var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var extension = Path.GetExtension(filePath).TrimStart('.');
@@ -160,7 +178,7 @@ public class DownloadJobProcessor : BackgroundService
             dbContext.StorageIntegrities.Add(integrity);
 
             // Step 4: Save downloaded video first to get the real generated ID
-            await dbContext.SaveChangesAsync(ct);
+            await SaveChangesGuardedAsync(dbContext, ct);
 
             // Step 5: Mark job as completed
             pendingJob.Status = DownloadJobStatus.Completed;
@@ -178,7 +196,7 @@ public class DownloadJobProcessor : BackgroundService
             };
             dbContext.TranscodeJobs.Add(transcodeJob);
 
-            await dbContext.SaveChangesAsync(ct);
+            await SaveChangesGuardedAsync(dbContext, ct);
 
             _logger.LogInformation("Download job {JobId} completed. Stored at {BlobPath}. Transcode job {TranscodeJobId} created.",
                 pendingJob.Id, uploadResult.BlobPath, transcodeJob.Id);
@@ -192,8 +210,34 @@ public class DownloadJobProcessor : BackgroundService
             pendingJob.Status = DownloadJobStatus.Failed;
             pendingJob.ErrorMessage = ex.Message;
             pendingJob.UpdatedAt = DateTime.UtcNow;
+            await SaveChangesGuardedAsync(dbContext, ct);
+        }
+    }
+
+    private async Task SaveChangesGuardedAsync(AppDbContext dbContext, CancellationToken ct)
+    {
+        await _dbLock.WaitAsync(ct);
+        try
+        {
             await dbContext.SaveChangesAsync(ct);
         }
+        finally
+        {
+            _dbLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Invokes the handler synchronously on the calling thread so progress
+    /// reports from the yt-dlp output reader are persisted in order.
+    /// </summary>
+    private sealed class SyncProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _handler;
+
+        public SyncProgress(Action<T> handler) => _handler = handler;
+
+        public void Report(T value) => _handler(value);
     }
 
     private void CleanupTempFile(string filePath)

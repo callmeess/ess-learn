@@ -1,8 +1,8 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Interfaces;
 using EssLearn.Application.Mappings;
 using EssLearn.Core.Entities;
 using EssLearn.Core.Enums;
-using EssLearn.Core.Interfaces;
 using EssLearn.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

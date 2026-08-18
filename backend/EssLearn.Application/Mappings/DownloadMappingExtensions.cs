@@ -1,6 +1,6 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Core.Entities;
-using EssLearn.Core.Interfaces.YtDlp;
+using EssLearn.Application.Interfaces.YtDlp;
 
 namespace EssLearn.Application.Mappings;
 

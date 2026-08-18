@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using EssLearn.Core.Interfaces.YtDlp;
+using EssLearn.Application.Interfaces.YtDlp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

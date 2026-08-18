@@ -1,10 +1,11 @@
 using EssLearn.Application.Dtos;
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Application.Services.BlobStorage;
+using EssLearn.Application.Interfaces;
+using EssLearn.Application.Interfaces.YtDlp;
 using EssLearn.Core.Entities;
-using EssLearn.Core.Interfaces;
-using EssLearn.Core.Interfaces.YtDlp;
 using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Interfaces;
+using EssLearn.Infrastructure.Services.BlobStorage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;

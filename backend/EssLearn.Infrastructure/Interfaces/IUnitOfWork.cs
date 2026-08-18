@@ -1,6 +1,7 @@
 using EssLearn.Core.Entities;
+using EssLearn.Infrastructure.Interfaces;
 
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Infrastructure.Interfaces;
 
 
 public interface IUnitOfWork : IAsyncDisposable

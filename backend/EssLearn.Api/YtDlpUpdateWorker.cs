@@ -1,8 +1,8 @@
-using EssLearn.Core.Interfaces.YtDlp;
+using EssLearn.Application.Interfaces.YtDlp;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace EssLearn.Infrastructure.Workers;
+namespace EssLearn.Api.Workers;
 
 /// Background service that ensures yt-dlp is installed on startup
 /// and automatically checks for updates every 24 hours

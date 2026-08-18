@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace EssLearn.Core.Dtos;
+namespace EssLearn.Application.Dtos;
 
 /// <summary>
 /// Video metadata from yt-dlp --dump-json output

@@ -1,4 +1,4 @@
-namespace EssLearn.Core.Interfaces.YtDlp;
+namespace EssLearn.Application.Interfaces.YtDlp;
 
 /// <summary>
 /// Low-level yt-dlp binary manager

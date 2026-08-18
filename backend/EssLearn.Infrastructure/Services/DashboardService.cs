@@ -1,7 +1,7 @@
 using EssLearn.Application.Dtos;
+using EssLearn.Application.Interfaces;
 using EssLearn.Core.Enums;
 using EssLearn.Infrastructure.Data;
-using EssLearn.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;

@@ -1,5 +1,5 @@
 using EssLearn.Application.Dtos;
-using EssLearn.Core.Interfaces;
+using EssLearn.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EssLearn.Api.Controllers;

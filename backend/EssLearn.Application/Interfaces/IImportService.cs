@@ -1,7 +1,7 @@
 
 using EssLearn.Application.Dtos;
 
-namespace EssLearn.Core.Interfaces;
+namespace EssLearn.Application.Interfaces;
 
 public interface IImportService
 {

@@ -138,9 +138,10 @@ export class VideosPageComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.openMenuId = null;
 
-    if (video.isTranscoding || !video.downloaded || video.transcoded) return;
+    if (video.isTranscoding || !video.downloaded) return;
 
     video.isTranscoding = true;
+    video.transcoded = false;
 
     this.streamingService.forceTranscode(video.id).subscribe({
       next: () => {

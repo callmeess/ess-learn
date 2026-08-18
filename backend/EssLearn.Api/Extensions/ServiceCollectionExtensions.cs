@@ -1,14 +1,12 @@
+using EssLearn.Application.Interfaces;
 using EssLearn.Application.Interfaces.YtDlp;
-using EssLearn.Application.Services.YtDlp;
-using EssLearn.Application.Services.BlobStorage;
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Core.Interfaces;
-using EssLearn.Core.Interfaces.YtDlp;
-
-using EssLearn.Infrastructure.Data;
-using EssLearn.Infrastructure.Repositories;
 using EssLearn.Api.Services;
+using EssLearn.Infrastructure.Data;
+using EssLearn.Infrastructure.Interfaces;
+using EssLearn.Infrastructure.Repositories;
 using EssLearn.Infrastructure.Services;
+using EssLearn.Infrastructure.Services.BlobStorage;
 using EssLearn.Infrastructure.Services.YtDlp;
 using EssLearn.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;

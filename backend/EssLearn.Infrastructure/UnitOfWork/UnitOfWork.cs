@@ -1,5 +1,5 @@
 using EssLearn.Core.Entities;
-using EssLearn.Core.Interfaces;
+using EssLearn.Infrastructure.Interfaces;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;

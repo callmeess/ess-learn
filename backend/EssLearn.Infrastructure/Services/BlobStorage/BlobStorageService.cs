@@ -4,12 +4,12 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 using EssLearn.Application.Dtos.BlobStorage;
-using EssLearn.Core.Interfaces;
+using EssLearn.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
 
-namespace EssLearn.Application.Services.BlobStorage;
+namespace EssLearn.Infrastructure.Services.BlobStorage;
 
 
 public class BlobStorageService : IBlobStorageService
