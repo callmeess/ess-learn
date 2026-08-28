@@ -9,16 +9,16 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
 COPY EssLearn.Core/EssLearn.Core.csproj EssLearn.Core/
+COPY EssLearn.Application/EssLearn.Application.csproj EssLearn.Application/
 COPY EssLearn.Infrastructure/EssLearn.Infrastructure.csproj EssLearn.Infrastructure/
 COPY EssLearn.Api/EssLearn.Api.csproj EssLearn.Api/
 
 RUN dotnet restore EssLearn.Api/EssLearn.Api.csproj
 
 COPY . .
-RUN find . -type d -name obj -exec rm -rf {} + || true
 
-RUN dotnet build EssLearn.Api/EssLearn.Api.csproj -c Release
-RUN dotnet publish EssLearn.Api/EssLearn.Api.csproj -c Release -o /app/publish --no-build
+RUN dotnet build EssLearn.Api/EssLearn.Api.csproj -c Release --no-restore
+RUN dotnet publish EssLearn.Api/EssLearn.Api.csproj -c Release -o /app/publish --no-build --no-restore
 
 FROM tools AS runtime
 WORKDIR /app
