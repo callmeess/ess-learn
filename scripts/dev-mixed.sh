@@ -51,10 +51,6 @@ if [[ "$FRONTEND_MODE" == "local" && ! -d "$FRONTEND_DIR/node_modules" ]]; then
   exit 1
 fi
 
-if [[ -z "${YOUTUBE_API_KEY:-}" ]]; then
-  echo "YOUTUBE_API_KEY is not set. Import endpoints may fail without it."
-fi
-
 cleanup() {
   local exit_code=$?
 
