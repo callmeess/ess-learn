@@ -10,7 +10,8 @@
     "serve:ssr:ess-front": "node dist/ess-front/server/server.mjs"
   },
   "private": true,
-  "packageManager": "npm@10.9.4",
+  "packageManager": "pnpm@10.15.0",
+
   "dependencies": {
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",

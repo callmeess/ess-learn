@@ -1,20 +1,24 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=build /app/package*.json ./
+RUN corepack enable
+
+COPY --from=build /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=build /app/dist ./dist
 
-RUN npm install --omit=dev
+RUN pnpm install --prod
 
 EXPOSE 4000
 ENV PORT=4000
