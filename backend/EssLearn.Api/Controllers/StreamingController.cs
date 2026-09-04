@@ -13,7 +13,6 @@ namespace EssLearn.Api.Controllers;
 [Route("api/[controller]")]
 public class StreamingController(
     IBlobStorageService blobStorage,
-    BlobStorageOptions blobOptions,
     AppDbContext dbContext) : ControllerBase
 {
     [HttpGet("{videoId}/status")]

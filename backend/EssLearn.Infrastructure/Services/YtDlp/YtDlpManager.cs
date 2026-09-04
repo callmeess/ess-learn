@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using EssLearn.Application.Interfaces.YtDlp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -17,70 +16,34 @@ public class YtDlpManager : IYtDlpManager
         // Get binary path from config or use a platform-appropriate default
         _binaryPath = YtDlpPathResolver.Resolve(config);
 
-        _logger.LogInformation("YtDlp binary path: {BinaryPath}", _binaryPath);
+        _logger.LogInformation("YtDlp binary path resolved");
     }
 
     public async Task EnsureInstalledAsync(CancellationToken ct = default)
     {
         if (File.Exists(_binaryPath))
         {
-            _logger.LogInformation("yt-dlp binary already exists at {Path}", _binaryPath);
+            _logger.LogInformation("yt-dlp binary already exists ");
             return;
         }
 
-        _logger.LogInformation("yt-dlp binary not found. Downloading...");
-        await DownloadLatestAsync(ct);
-        _logger.LogInformation("yt-dlp installed successfully at {Path}", _binaryPath);
+        _logger.LogWarning(
+            "yt-dlp binary not found at '{BinaryPath}'. " +
+            "It is expected to be installed in the Docker image (pip3). Downloading is not supported.",
+            _binaryPath);
     }
 
 
     public async Task UpdateAsync(CancellationToken ct = default)
     {
+        if (!File.Exists(_binaryPath))
+        {
+            _logger.LogWarning("Cannot update yt-dlp: binary not found at '{BinaryPath}'", _binaryPath);
+            return;
+        }
+
         _logger.LogInformation("Updating yt-dlp to latest stable version");
-
-        // We would call YtDlpService here but to avoid circular dependency,
-        // this is implemented as a separate method that can be called
         await RunUpdateCommandAsync(ct);
-    }
-
-    private async Task DownloadLatestAsync(CancellationToken ct = default)
-    {
-        var directory = Path.GetDirectoryName(_binaryPath);
-        if (directory != null)
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        // Construct download URL based on OS
-        var url = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
-            : "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp";
-
-        try
-        {
-            _logger.LogInformation("Downloading yt-dlp from {Url}", url);
-
-            using var httpClient = new HttpClient();
-            var bytes = await httpClient.GetByteArrayAsync(url, ct);
-
-            await File.WriteAllBytesAsync(_binaryPath, bytes, ct);
-
-            // Set executable permissions on Unix-like systems
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                File.SetUnixFileMode(_binaryPath,
-                    UnixFileMode.UserExecute |
-                    UnixFileMode.UserRead |
-                    UnixFileMode.UserWrite);
-            }
-
-            _logger.LogInformation("Successfully downloaded yt-dlp ({Bytes} bytes)", bytes.Length);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to download yt-dlp from {Url}", url);
-            throw;
-        }
     }
 
     private async Task RunUpdateCommandAsync(CancellationToken ct = default)
@@ -97,7 +60,7 @@ public class YtDlpManager : IYtDlpManager
         try
         {
             using var process = System.Diagnostics.Process.Start(psi)
-                ?? throw new InvalidOperationException($"Failed to start yt-dlp process from {_binaryPath}");
+                ?? throw new InvalidOperationException($"Failed to start yt-dlp process");
 
             await process.WaitForExitAsync(ct);
 

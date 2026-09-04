@@ -29,8 +29,6 @@ public class YtDlpService : IYtDlpService
 
         // Ensure download directory exists
         Directory.CreateDirectory(_downloadPath);
-
-        _logger.LogInformation("YtDlpService initialized with download path: {DownloadPath}", _downloadPath);
     }
 
     /// <summary>
@@ -343,7 +341,7 @@ public class YtDlpService : IYtDlpService
             try
             {
                 var info = ParseFormat(format);
-                var sig = $"{info.Container}|{info.Height?.ToString() ?? "-"}|{info.HasVideo}|{info.HasAudio}|{info.Quality}";
+                var sig = $"{info.FormatId}";
                 if (seen.Add(sig))
                     formatList.Add(info);
             }
@@ -353,12 +351,51 @@ public class YtDlpService : IYtDlpService
             }
         }
 
-        return formatList
+        var muxed = formatList
             .Where(f => f.HasVideo && f.HasAudio)
             .OrderByDescending(f => f.Height ?? 0)
             .ThenByDescending(f => f.FileSizeBytes)
-            .Take(10)
             .ToList();
+
+        var bestVideo = formatList
+            .Where(f => f.HasVideo && !f.HasAudio)
+            .OrderByDescending(f => f.Height ?? 0)
+            .ThenByDescending(f => f.FileSizeBytes)
+            .FirstOrDefault();
+
+        var bestAudio = formatList
+            .Where(f => !f.HasVideo && f.HasAudio)
+            .OrderByDescending(f => f.FileSizeBytes)
+            .FirstOrDefault();
+
+        var result = new List<VideoFormatInfo>();
+
+        if (bestVideo != null && bestAudio != null)
+        {
+            var mergedFormatId = $"{bestVideo.FormatId}+{bestAudio.FormatId}";
+            var mergedHeight = bestVideo.Height;
+            var mergedQuality = mergedHeight.HasValue ? $"{mergedHeight}p" : "best";
+            var mergedSize = bestVideo.FileSizeBytes + bestAudio.FileSizeBytes;
+
+            result.Add(new VideoFormatInfo(
+                mergedFormatId, mergedQuality, bestVideo.Container,
+                mergedSize, bestVideo.Width, mergedHeight,
+                bestVideo.VideoCodec, bestAudio.AudioCodec,
+                true, true));
+
+            _logger.LogInformation(
+                "Auto-paired video format {VideoFormat} with audio format {AudioFormat} for merged download",
+                bestVideo.FormatId, bestAudio.FormatId);
+        }
+
+        result.AddRange(muxed.Take(9));
+
+        if (result.Count == 0)
+        {
+            _logger.LogWarning("No usable formats found after filtering for video {VideoId}", videoInfo.TryGetProperty("id", out var idEl) ? idEl.GetString() : "unknown");
+        }
+
+        return result.Take(10).ToList();
     }
 
     private static VideoFormatInfo ParseFormat(JsonElement format)

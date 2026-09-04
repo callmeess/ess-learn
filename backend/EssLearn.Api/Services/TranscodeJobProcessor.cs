@@ -4,9 +4,6 @@ using EssLearn.Core.Entities;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Services.BlobStorage;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -279,7 +276,7 @@ public partial class TranscodeJobProcessor : BackgroundService
         var timeRegex = FfmpegTimeRegex();
         var lastReportedProgress = -1.0;
 
-        while (!process.StandardError.EndOfStream && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             var line = await process.StandardError.ReadLineAsync(ct);
             if (line == null)
