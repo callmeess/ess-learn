@@ -26,6 +26,9 @@ services:
       ConnectionStrings__Database: "Host=db;Port=5432;Database=esslearn;Username=esslearn;Password=esslearn"
       ConnectionStrings__Redis: "redis:6379"
       VideoStorage__DownloadPath: "/app/downloads"
+      yt-dlp__ExecutablePath: "/usr/local/bin/yt-dlp"
+      BlobStorage__AccessKey: "${MINIO_ROOT_USER}"
+      BlobStorage__SecretKey: "${MINIO_ROOT_PASSWORD}"
     volumes:
       - ./downloads:/app/downloads
     depends_on:

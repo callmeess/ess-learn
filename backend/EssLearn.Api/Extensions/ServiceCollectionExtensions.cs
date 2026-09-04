@@ -2,6 +2,7 @@ using EssLearn.Application.Interfaces;
 using EssLearn.Application.Interfaces.YtDlp;
 using EssLearn.Application.Dtos.BlobStorage;
 using EssLearn.Api.Services;
+using EssLearn.Api.Workers;
 using EssLearn.Infrastructure.Data;
 using EssLearn.Infrastructure.Interfaces;
 using EssLearn.Infrastructure.Repositories;
@@ -60,9 +61,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers blob storage services (MinIO).
-    /// </summary>
+    
     private static IServiceCollection AddBlobStorage(this IServiceCollection services, IConfiguration config)
     {
         // Get blob storage options from configuration
@@ -108,14 +107,14 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registers external services (YouTube, Video Download).
-    /// </summary>
+    
     private static IServiceCollection AddExternalServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddScoped<IYtDlpOrchestrator, YtDlpOrchestrator>();
         services.AddScoped<IYtDlpService, YtDlpService>();
-        services.AddScoped<IYtDlpManager, YtDlpManager>();
+        services.AddSingleton<IYtDlpManager, YtDlpManager>();
+
+        services.AddHostedService<YtDlpUpdateWorker>();
 
         return services;
     }

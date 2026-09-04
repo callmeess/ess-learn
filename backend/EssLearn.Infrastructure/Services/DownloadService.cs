@@ -55,28 +55,9 @@ public class DownloadService : IDownloadService
         if (video?.YoutubeVideoId == null)
             throw new InvalidOperationException("Video not found or has no YouTube ID.");
 
-        // Check cache first
-        var cacheKey = $"formats:{video.YoutubeVideoId}";
-        var cachedFormats = await _cache.GetStringAsync(cacheKey);
-
-        if (cachedFormats != null)
-        {
-            var formats = JsonSerializer.Deserialize<List<VideoFormatDto>>(cachedFormats);
-            return formats ?? new List<VideoFormatDto>();
-        }
-
         // Fetch formats from yt-dlp
         var formatInfos = await _ytdlpService.GetAvailableFormatsAsync(video.YoutubeVideoId);
-
         var formatDtos = formatInfos.Select(f => f.ToDto()).ToList();
-
-        // Cache for 24 hours
-        var cacheOptions = new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(CACHE_EXPIRATION_HOURS)
-        };
-        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(formatDtos), cacheOptions);
-
         return formatDtos;
     }
 

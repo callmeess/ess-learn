@@ -75,4 +75,9 @@ public interface IBlobStorageService
     /// Checks if a blob exists in storage.
     /// </summary>
     Task<bool> BlobExistsAsync(string bucket, string objectPath);
+
+    /// <summary>
+    /// Ensures all configured buckets exist in storage, creating any that are missing.
+    /// </summary>
+    Task EnsureAllBucketsAsync(CancellationToken ct = default);
 }

@@ -1,10 +1,5 @@
 namespace EssLearn.Application.Interfaces.YtDlp;
 
-/// <summary>
-/// Low-level yt-dlp binary manager
-/// Handles downloading, installing, and updating the yt-dlp executable
-/// Implemented in Infrastructure layer as YtDlpManager
-/// </summary>
 public interface IYtDlpManager
 {
     /// <summary>

@@ -405,27 +405,51 @@ public class BlobStorageService : IBlobStorageService
     }
 
     
+    public async Task EnsureAllBucketsAsync(CancellationToken ct = default)
+    {
+        var buckets = new[]
+        {
+            _options.Buckets.Videos,
+            _options.Buckets.Images,
+            _options.Buckets.Icons,
+            _options.Buckets.Temp
+        };
+
+        foreach (var bucket in buckets)
+        {
+            await EnsureBucketExistsAsync(bucket);
+        }
+    }
+
     private async Task EnsureBucketExistsAsync(string bucket)
     {
         try
         {
+            _logger.LogDebug("Checking if bucket {Bucket} exists on {Endpoint}", bucket, _options.Endpoint);
+
             var existsArgs = new BucketExistsArgs()
                 .WithBucket(bucket);
 
             var exists = await _minioClient.BucketExistsAsync(existsArgs);
             if (!exists)
             {
-                _logger.LogInformation("Creating bucket {Bucket}", bucket);
+                _logger.LogInformation("Creating bucket {Bucket} on {Endpoint}", bucket, _options.Endpoint);
 
                 var makeBucketArgs = new MakeBucketArgs()
                     .WithBucket(bucket);
 
                 await _minioClient.MakeBucketAsync(makeBucketArgs);
+
+                _logger.LogInformation("Created bucket {Bucket}", bucket);
+            }
+            else
+            {
+                _logger.LogDebug("Bucket {Bucket} already exists", bucket);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to ensure bucket exists: {Bucket}", bucket);
+            _logger.LogError(ex, "Failed to ensure bucket {Bucket} on {Endpoint}. Verify MinIO is running and credentials are correct.", bucket, _options.Endpoint);
             throw;
         }
     }

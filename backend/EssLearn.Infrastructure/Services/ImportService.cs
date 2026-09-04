@@ -151,7 +151,7 @@ public class ImportService : IImportService
             var newPlaylist = new Playlist
             {
                 FieldId = dto.FieldId,
-                ChannelId = channel?.Id,
+                Channel = channel,
                 YoutubePlaylistId = playlistId,
                 Title = firstEntry.PlaylistTitle ?? "Untitled Playlist",
                 ThumbnailUrl = firstEntry.Thumbnail,
