@@ -1,11 +1,12 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ChannelService } from '../../../core/services';
+import { ChannelListItemDto } from '../../../core/models';
 
-interface Channel {
-  id: string;
-  name: string;
-  handle: string;
-  thumbnail: string;
+interface ChannelViewModel {
+  id: number;
+  title: string;
+  thumbnailUrl: string;
   subscriberCount: string;
   videoCount: number;
   downloadedCount: number;
@@ -19,51 +20,66 @@ interface Channel {
   standalone: true,
   imports: [CommonModule]
 })
-export class ChannelsPageComponent {
-  readonly channels: Channel[] = [
-    {
-      id: '1',
-      name: 'Web Dev Simplified',
-      handle: '@webdevsimplified',
-      thumbnail: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200',
-      subscriberCount: '1.2M',
-      videoCount: 248,
-      downloadedCount: 42,
-      watchProgress: 35
-    },
-    {
-      id: '2',
-      name: 'TechWorld with Nana',
-      handle: '@techworldwithnana',
-      thumbnail: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=200',
-      subscriberCount: '856K',
-      videoCount: 156,
-      downloadedCount: 28,
-      watchProgress: 45
-    },
-    {
-      id: '3',
-      name: 'freeCodeCamp.org',
-      handle: '@freecodecamp',
-      thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-      subscriberCount: '8.5M',
-      videoCount: 1250,
-      downloadedCount: 85,
-      watchProgress: 12
-    },
-    {
-      id: '4',
-      name: 'Fireship',
-      handle: '@fireship',
-      thumbnail: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
-      subscriberCount: '2.8M',
-      videoCount: 524,
-      downloadedCount: 67,
-      watchProgress: 28
-    }
-  ];
+export class ChannelsPageComponent implements OnInit {
+  readonly fallbackThumb = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400';
+
+  channels: ChannelViewModel[] = [];
+  isLoading = false;
+  errorMessage = '';
+
+  constructor(
+    private readonly channelService: ChannelService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    this.loadChannels();
+  }
 
   get avgProgress(): number {
+    if (this.channels.length === 0) return 0;
     return Math.round(this.channels.reduce((sum, c) => sum + c.watchProgress, 0) / this.channels.length);
+  }
+
+  private loadChannels(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.channelService.getChannels().subscribe({
+      next: (channels) => {
+        this.channels = channels.map((c) => this.mapChannel(c));
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.errorMessage = 'Failed to load channels. Please try again.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private mapChannel(c: ChannelListItemDto): ChannelViewModel {
+    return {
+      id: c.id,
+      title: c.title,
+      thumbnailUrl: c.thumbnailUrl ?? this.fallbackThumb,
+      subscriberCount: this.formatCount(c.subscriberCount),
+      videoCount: c.videoCount,
+      downloadedCount: c.downloadedCount,
+      watchProgress: this.calculateProgress(c.watchedSeconds, c.totalDurationSeconds)
+    };
+  }
+
+  private calculateProgress(watchedSeconds: number, totalSeconds: number): number {
+    if (totalSeconds <= 0) return 0;
+    return Math.min(100, Math.round((watchedSeconds / totalSeconds) * 100));
+  }
+
+  private formatCount(count: number): string {
+    if (count >= 1_000_000_000) return (count / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+    if (count >= 1_000_000) return (count / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (count >= 1_000) return (count / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return count.toString();
   }
 }

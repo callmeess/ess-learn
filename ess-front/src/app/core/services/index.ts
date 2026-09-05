@@ -6,3 +6,4 @@ export { RoadmapService } from './roadmap.service';
 export { DashboardService } from './dashboard.service';
 export { ImportService } from './import.service';
 export { StreamingService } from './streaming.service';
+export { ChannelService } from './channel.service';

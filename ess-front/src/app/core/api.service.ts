@@ -5,6 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   AddPlaylistToRoadmapDto,
   AddVideosToPlaylistDto,
+  ChannelListItemDto,
   CreateFieldDto,
   CreatePlaylistDto,
   CreateRoadmapDto,
@@ -51,6 +52,11 @@ export class ApiService {
     }
 
     return this.http.get<DashboardDto>(`${this.baseUrl}/api/dashboard`, { params });
+  }
+
+  // Channels
+  getChannels(): Observable<ChannelListItemDto[]> {
+    return this.http.get<ChannelListItemDto[]>(`${this.baseUrl}/api/channels`);
   }
 
   // Fields
