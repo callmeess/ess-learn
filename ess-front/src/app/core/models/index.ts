@@ -23,3 +23,4 @@ export type {
 export type { DashboardDto } from './dashboard.models';
 export type { ImportVideoDto, ImportPlaylistDto, ImportResultDto } from './import.models';
 export type { StreamingStatusDto, TranscodeResultDto } from './streaming.models';
+export type { ChannelListItemDto } from './channel.models';

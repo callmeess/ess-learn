@@ -141,6 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDownloadService, DownloadService>();
         services.AddScoped<IRoadmapService, RoadmapService>();
+        services.AddScoped<IChannelService, ChannelService>();
 
         services.AddHostedService<DownloadJobProcessor>();
         services.AddHostedService<TranscodeJobProcessor>();
